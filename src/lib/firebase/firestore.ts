@@ -22,11 +22,13 @@ export async function createUserProfile(uid: string, data: Omit<UserProfile, 'cr
   const app = initializeFirebaseAdmin();
   const db = getFirestore(app);
   const userRef = doc(db, 'users', uid);
+  // Pass the entire data object to be saved.
   return await setDoc(userRef, {
     ...data,
     createdAt: serverTimestamp(),
   });
 }
+
 
 export async function getUserProfile(uid:string): Promise<UserProfile | null> {
     const app = initializeFirebaseAdmin();
