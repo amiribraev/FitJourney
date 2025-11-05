@@ -21,7 +21,7 @@ import { signOut } from 'firebase/auth';
 export default function ProfileContent() {
   const { user, isUserLoading } = useUser();
   const auth = useFirebaseAuth();
-  const firestore = getFirestore();
+  const firestore = useMemo(() => getFirestore(), []);
   const { toast } = useToast();
   
   const userProfileRef = useMemoFirebase(() => {
@@ -36,12 +36,27 @@ export default function ProfileContent() {
 
   const form = useForm<ProfileUpdateData>({
     resolver: zodResolver(ProfileUpdateSchema),
+    // `profile` can be null initially, so we need to provide fallbacks
     values: {
       weight: profile?.weight ?? 0,
       height: profile?.height ?? 0,
       goal: profile?.goal ?? 'weight loss',
     }
   });
+
+  // This effect ensures the form is updated when the profile data loads
+  // It handles the case where the component renders before `profile` is fetched
+  const { reset } = form;
+  React.useEffect(() => {
+    if (profile) {
+      reset({
+        weight: profile.weight,
+        height: profile.height,
+        goal: profile.goal,
+      });
+    }
+  }, [profile, reset]);
+
 
   async function handleSignOut() {
     try {
@@ -55,6 +70,7 @@ export default function ProfileContent() {
   async function onSubmit(data: ProfileUpdateData) {
     if (!user) return;
     setIsSubmitting(true);
+    toast({ title: 'Профиль обновляется...', description: 'Генерируем ваши новые планы. Это может занять минуту.' });
     try {
       const result = await updateUserAndGeneratePlans(user.uid, data);
       if (result.success) {
@@ -70,10 +86,22 @@ export default function ProfileContent() {
     }
   }
 
-  if (isUserLoading || (user && isProfileLoading && !profile)) {
+  // Unified loading state
+  const isLoading = isUserLoading || isProfileLoading;
+  
+  if (isLoading) {
     return (
-      <div className="flex h-full items-center justify-center">
+      <div className="flex h-full items-center justify-center py-10">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (error) {
+     return (
+      <div className="container py-8 text-center">
+        <p className="text-red-500">Не удалось загрузить профиль. Пожалуйста, попробуйте перезагрузить страницу.</p>
+        <p className="text-sm text-muted-foreground mt-2">{error.message}</p>
       </div>
     );
   }
@@ -82,7 +110,6 @@ export default function ProfileContent() {
     return (
       <div className="container py-8 text-center">
         <p>Не удалось загрузить профиль. Пожалуйста, войдите в систему или зарегистрируйтесь.</p>
-         {error && <p className="text-red-500">{error.message}</p>}
       </div>
     );
   }

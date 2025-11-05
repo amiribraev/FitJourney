@@ -1,16 +1,14 @@
 'use server';
 
-import { doc, setDoc, getDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 import type { UserProfile } from '../definitions';
 import { firebaseConfig } from '@/firebase/config';
 
 // Function to initialize Firebase on the server-side if not already done.
-// This is crucial for server actions and other server-side code.
 function initializeFirebaseAdmin() {
   if (!getApps().length) {
-    // We are on the server, so we initialize the app with the config.
     return initializeApp(firebaseConfig);
   }
   return getApp();
@@ -19,16 +17,15 @@ function initializeFirebaseAdmin() {
 const app = initializeFirebaseAdmin();
 const db = getFirestore(app);
 
-
-export async function createUserProfile(uid: string, data: Omit<UserProfile, 'createdAt'>) {
+export async function createUserProfile(uid: string, data: Omit<UserProfile, 'createdAt' | 'dietPlan' | 'workoutPlan'>) {
   const userRef = doc(db, 'users', uid);
-  // Using new Date().toISOString() for server-side timestamp generation for reliability
-  return await setDoc(userRef, {
+  // Use a server-side timestamp for reliability
+  const profileData = {
     ...data,
     createdAt: new Date().toISOString(),
-  });
+  };
+  return await setDoc(userRef, profileData);
 }
-
 
 export async function getUserProfile(uid:string): Promise<UserProfile | null> {
     const userRef = doc(db, 'users', uid);
@@ -43,5 +40,6 @@ export async function getUserProfile(uid:string): Promise<UserProfile | null> {
 
 export async function updateUserProfile(uid: string, data: Partial<UserProfile>) {
     const userRef = doc(db, 'users', uid);
+    // When updating, we don't need to worry about the creation timestamp.
     return await updateDoc(userRef, data);
 }

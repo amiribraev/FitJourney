@@ -5,21 +5,23 @@ import { generateDietPlan } from '@/ai/flows/generate-diet-plan';
 import { generateWorkoutPlan } from '@/ai/flows/generate-workout-plan';
 import { createUserProfile, getUserProfile, updateUserProfile } from './firebase/firestore';
 import type { UserProfile } from './definitions';
-import { RegistrationSchema } from './schema';
+import { RegistrationSchema, type ProfileUpdateData, type RegistrationData } from './schema';
 
-export async function completeRegistration(userId: string, data: unknown) {
+
+export async function completeRegistration(userId: string, data: RegistrationData) {
   const validationResult = RegistrationSchema.safeParse(data);
 
   if (!validationResult.success) {
-    console.error('Registration validation failed:', validationResult.error);
-    return { success: false, error: 'Invalid data provided.' };
+    console.error('Registration validation failed:', validationResult.error.flatten());
+    return { success: false, error: 'Предоставлены неверные данные.' };
   }
 
   const { name, email, age, gender, weight, height, goal } = validationResult.data;
 
   try {
-    // Step 1: Create the initial user profile without the plans
-    const initialProfileData: Omit<UserProfile, 'createdAt' | 'dietPlan' | 'workoutPlan'> = {
+    // Step 1: Create the initial user profile WITHOUT the plans
+    // The plans will be generated and added in a second step.
+    const userProfileData: Omit<UserProfile, 'createdAt' | 'dietPlan' | 'workoutPlan'> = {
       uid: userId,
       email,
       name,
@@ -30,41 +32,54 @@ export async function completeRegistration(userId: string, data: unknown) {
       goal,
     };
     
-    await createUserProfile(userId, initialProfileData);
+    await createUserProfile(userId, userProfileData);
     
-    // Step 2: Generate plans in parallel
-    const aiInput = { age, gender, weight, height, goal };
-    const [dietPlanResult, workoutPlanResult] = await Promise.all([
-      generateDietPlan(aiInput),
-      generateWorkoutPlan(aiInput),
-    ]);
+    // Step 2: Asynchronously generate plans and update the profile.
+    // We don't await this here so the registration can complete faster.
+    // The user will see a loading state on the plan pages until this is done.
+    generateAndSavePlans(userId, { age, gender, weight, height, goal }).then(() => {
+        // Revalidate paths after plans are saved
+        revalidatePath('/profile');
+        revalidatePath('/diet-plan');
+        revalidatePath('/workout-plan');
+    });
 
-    // Step 3: Update the user profile with the generated plans
-    const plansData: Partial<UserProfile> = {
-        dietPlan: dietPlanResult,
-        workoutPlan: workoutPlanResult,
-    };
-
-    await updateUserProfile(userId, plansData);
-
-    revalidatePath('/profile');
-    revalidatePath('/diet-plan');
-    revalidatePath('/workout-plan');
-
+    // The registration is considered successful as soon as the profile is created.
     return { success: true };
+
   } catch (error) {
-    console.error('Registration completion error:', error);
-    // Even if plan generation fails, the user might already be created.
-    // The error message reflects this might be a multi-step failure.
-    return { success: false, error: 'Failed to generate plans or save profile.' };
+    console.error('Ошибка завершения регистрации:', error);
+    return { success: false, error: 'Не удалось создать профиль пользователя.' };
   }
 }
 
-export async function updateUserAndGeneratePlans(userId: string, data: { weight: number; height: number; goal: 'weight loss' | 'muscle gain' }) {
+// Helper function to run plan generation in the background
+async function generateAndSavePlans(userId: string, aiInput: { age: number, gender: 'male' | 'female', weight: number, height: number, goal: 'weight loss' | 'muscle gain' }) {
+    try {
+        const [dietPlanResult, workoutPlanResult] = await Promise.all([
+            generateDietPlan(aiInput),
+            generateWorkoutPlan(aiInput),
+        ]);
+
+        const plansData: Partial<UserProfile> = {
+            dietPlan: dietPlanResult,
+            workoutPlan: workoutPlanResult,
+        };
+
+        await updateUserProfile(userId, plansData);
+        console.log(`Планы для пользователя ${userId} успешно созданы и сохранены.`);
+    } catch (error) {
+        console.error(`Ошибка при генерации планов для пользователя ${userId}:`, error);
+        // Optionally, update the user profile with an error state
+    }
+}
+
+
+export async function updateUserAndGeneratePlans(userId: string, data: ProfileUpdateData) {
     try {
         const existingProfile = await getUserProfile(userId);
         if (!existingProfile) {
-            return { success: false, error: 'User profile not found.' };
+            return { success: false, error: 'Профиль пользователя не найден.' };
         }
 
         const aiInput = {
@@ -75,28 +90,31 @@ export async function updateUserAndGeneratePlans(userId: string, data: { weight:
             goal: data.goal,
         };
 
+        // Update profile and generate plans in parallel
         const [dietPlanResult, workoutPlanResult] = await Promise.all([
             generateDietPlan(aiInput),
             generateWorkoutPlan(aiInput),
+            // Update the user's core info immediately
+            updateUserProfile(userId, {
+                weight: data.weight,
+                height: data.height,
+                goal: data.goal,
+            })
         ]);
 
-        const updatedData: Partial<UserProfile> = {
-            weight: data.weight,
-            height: data.height,
-            goal: data.goal,
+        // Now update the profile again with the generated plans
+        await updateUserProfile(userId, {
             dietPlan: dietPlanResult,
             workoutPlan: workoutPlanResult,
-        };
-
-        await updateUserProfile(userId, updatedData);
+        });
 
         revalidatePath('/profile');
         revalidatePath('/diet-plan');
         revalidatePath('/workout-plan');
 
-        return { success: true, data: updatedData };
+        return { success: true };
     } catch (error) {
-        console.error('Profile update error:', error);
-        return { success: false, error: 'Failed to update profile and generate new plans.' };
+        console.error('Ошибка обновления профиля:', error);
+        return { success: false, error: 'Не удалось обновить профиль и сгенерировать новые планы.' };
     }
 }
