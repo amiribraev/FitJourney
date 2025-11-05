@@ -1,11 +1,10 @@
 'use ' + 'client';
 
-import { useEffect, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2, User, Weight, Ruler, Target, Edit } from 'lucide-react';
-import { useAuth } from '@/hooks/use-auth';
-import { getUserProfile } from '@/lib/firebase/firestore';
+import { useUser, useDoc, useAuth as useFirebaseAuth } from '@/firebase';
 import type { UserProfile } from '@/lib/definitions';
 import { ProfileUpdateSchema, type ProfileUpdateData } from '@/lib/schema';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,42 +15,42 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { updateUserAndGeneratePlans } from '@/lib/actions';
-import { handleSignOut } from '@/lib/firebase/auth';
+import { doc, getFirestore } from 'firebase/firestore';
+import { signOut } from 'firebase/auth';
 
 export default function ProfileContent() {
-  const { user } = useAuth();
+  const { user, isUserLoading } = useUser();
+  const auth = useFirebaseAuth();
+  const firestore = getFirestore();
   const { toast } = useToast();
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
+  
+  const userProfileRef = useMemo(() => {
+    if (!user) return undefined;
+    return doc(firestore, 'users', user.uid);
+  }, [user, firestore]);
+
+  const { data: profile, isLoading: isProfileLoading, error } = useDoc<UserProfile>(userProfileRef);
+
   const [isEditing, setIsEditing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<ProfileUpdateData>({
     resolver: zodResolver(ProfileUpdateSchema),
+    values: {
+      weight: profile?.weight ?? 0,
+      height: profile?.height ?? 0,
+      goal: profile?.goal ?? 'weight loss',
+    }
   });
 
-  useEffect(() => {
-    if (user) {
-      getUserProfile(user.uid)
-        .then(data => {
-          setProfile(data);
-          if (data) {
-            form.reset({
-              weight: data.weight,
-              height: data.height,
-              goal: data.goal,
-            });
-          }
-          setLoading(false);
-        })
-        .catch(error => {
-          console.error("Failed to fetch profile:", error);
-          setLoading(false);
-        });
-    } else {
-      setLoading(false);
+  async function handleSignOut() {
+    try {
+      await signOut(auth);
+      window.location.href = '/login';
+    } catch (error) {
+      console.error('Error signing out:', error);
     }
-  }, [user, form]);
+  }
   
   async function onSubmit(data: ProfileUpdateData) {
     if (!user) return;
@@ -59,9 +58,6 @@ export default function ProfileContent() {
     try {
       const result = await updateUserAndGeneratePlans(user.uid, data);
       if (result.success) {
-        // Optimistically update profile state before re-fetching
-        const updatedProfile = { ...profile, ...result.data } as UserProfile;
-        setProfile(updatedProfile);
         toast({ title: 'Профиль обновлен', description: 'Ваши новые планы тренировок и питания сгенерированы.' });
         setIsEditing(false);
       } else {
@@ -74,7 +70,7 @@ export default function ProfileContent() {
     }
   }
 
-  if (loading) {
+  if (isUserLoading || (user && isProfileLoading)) {
     return (
       <div className="flex h-full items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -86,6 +82,7 @@ export default function ProfileContent() {
     return (
       <div className="container py-8 text-center">
         <p>Не удалось загрузить профиль. Пожалуйста, войдите в систему или зарегистрируйтесь.</p>
+         {error && <p className="text-red-500">{error.message}</p>}
       </div>
     );
   }

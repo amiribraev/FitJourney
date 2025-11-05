@@ -1,12 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useAuth } from '@/hooks/use-auth';
-import { getUserProfile } from '@/lib/firebase/firestore';
+import { useMemo } from 'react';
+import { useUser, useDoc } from '@/firebase';
 import type { UserProfile } from '@/lib/definitions';
 import { Loader2, UtensilsCrossed, Salad, Fish, Soup } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { doc, getFirestore } from 'firebase/firestore';
 
 const mealIcons = {
   default: <UtensilsCrossed className="h-5 w-5 text-primary" />,
@@ -26,23 +26,17 @@ const getMealIcon = (meal: string) => {
 const dayOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
 export default function DietPlanContent() {
-  const { user } = useAuth();
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { user, isUserLoading } = useUser();
+  const firestore = getFirestore();
 
-  useEffect(() => {
-    if (user) {
-      getUserProfile(user.uid)
-        .then(data => {
-          setProfile(data);
-          setLoading(false);
-        })
-        .catch(error => {
-          console.error("Failed to fetch profile:", error);
-          setLoading(false);
-        });
-    }
-  }, [user]);
+  const userProfileRef = useMemo(() => {
+    if (!user) return undefined;
+    return doc(firestore, 'users', user.uid);
+  }, [user, firestore]);
+
+  const { data: profile, isLoading: isProfileLoading } = useDoc<UserProfile>(userProfileRef);
+
+  const loading = isUserLoading || isProfileLoading;
 
   if (loading) {
     return (

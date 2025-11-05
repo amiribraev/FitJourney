@@ -21,10 +21,11 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { useAuth } from '@/hooks/use-auth';
+import { useUser, useAuth as useFirebaseAuth } from '@/firebase';
+import { signOut } from 'firebase/auth';
 import { cn } from '@/lib/utils';
 import { Logo } from './logo';
-import { handleSignOut } from '@/lib/firebase/auth';
+
 
 const navLinks = [
   { href: '/', label: 'Главная', icon: Home },
@@ -44,7 +45,19 @@ const navLinks = [
 
 export function Header() {
   const pathname = usePathname();
-  const { user, loading } = useAuth();
+  const { user, isUserLoading } = useUser();
+  const auth = useFirebaseAuth();
+
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth);
+      // This is a client-side function, so we can safely use window.location
+      window.location.href = '/login';
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
+
 
   const renderNavLinks = (isMobile = false) =>
     navLinks.map((link) => {
@@ -81,9 +94,9 @@ export function Header() {
 
         <div className="flex items-center gap-4">
           <div className="hidden md:flex">
-            {!loading &&
+            {!isUserLoading &&
               (user ? (
-                <UserMenu />
+                <UserMenu onSignOut={handleSignOut} />
               ) : (
                 <Button asChild>
                   <Link href="/login">Войти</Link>
@@ -102,7 +115,7 @@ export function Header() {
                 <nav className="mt-8 flex flex-col gap-4">
                   {renderNavLinks(true)}
                   <DropdownMenuSeparator />
-                  {!loading &&
+                  {!isUserLoading &&
                     (user ? (
                       <>
                         <Button variant="ghost" asChild className="justify-start">
@@ -131,7 +144,7 @@ export function Header() {
   );
 }
 
-function UserMenu() {
+function UserMenu({ onSignOut }: { onSignOut: () => void }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -148,7 +161,7 @@ function UserMenu() {
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleSignOut}>
+        <DropdownMenuItem onClick={onSignOut}>
           <LogOut className="mr-2 h-4 w-4" />
           <span>Выйти</span>
         </DropdownMenuItem>
