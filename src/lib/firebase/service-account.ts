@@ -1,10 +1,5 @@
-// src/lib/firebase/service-account.ts
 
 import type { ServiceAccount } from 'firebase-admin/app';
-
-// This function now reads a single environment variable that holds the entire JSON
-// configuration. This is a more robust way to handle service account credentials,
-// especially in environments where newline characters in private keys can be problematic.
 
 function getServiceAccount(): ServiceAccount {
   const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
