@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { useAuth } from '@/firebase';
+import { useAuth, useFirestore } from '@/firebase';
 import { RegistrationSchema, type RegistrationData } from '@/lib/schema';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,13 +14,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
-import { completeRegistration } from '@/lib/actions';
 import type { UserProfile } from '@/lib/definitions';
+import { doc, setDoc } from 'firebase/firestore';
 
 
 export function RegisterForm() {
   const router = useRouter();
   const auth = useAuth();
+  const firestore = useFirestore();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -47,8 +48,8 @@ export function RegisterForm() {
       // Update Firebase Auth profile with name
       await updateProfile(user, { displayName: data.name });
 
-      // 2. Create profile object to send to the server
-      const userProfileData: Omit<UserProfile, 'dietPlan' | 'workoutPlan' | 'createdAt'> = {
+      // 2. Create profile object to save to Firestore
+      const userProfileData: Omit<UserProfile, 'dietPlan' | 'workoutPlan'> = {
         uid: user.uid,
         email: data.email,
         name: data.name,
@@ -57,18 +58,15 @@ export function RegisterForm() {
         weight: data.weight,
         height: data.height,
         goal: data.goal,
+        createdAt: new Date().toISOString(),
       };
-
-      // 3. Call server action to create profile and generate plans
-      const result = await completeRegistration(userProfileData);
-
-      if (!result.success) {
-        throw new Error(result.error || 'Не удалось завершить регистрацию.');
-      }
+      
+      const userRef = doc(firestore, 'users', user.uid);
+      await setDoc(userRef, userProfileData);
 
       toast({
         title: 'Регистрация завершена!',
-        description: 'Ваш профиль создан. Планы генерируются...',
+        description: 'Ваш профиль создан. Перенаправляем...',
       });
 
       // 4. Redirect to profile
@@ -136,7 +134,7 @@ export function RegisterForm() {
         )} />
         <Button type="submit" className="w-full md:col-span-2 bg-accent hover:bg-accent/90" disabled={isSubmitting}>
           {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Зарегистрироваться и получить план
+          Зарегистрироваться
         </Button>
       </form>
     </Form>

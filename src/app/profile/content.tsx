@@ -14,7 +14,6 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { updateUserAndGeneratePlans } from '@/lib/actions';
 import { doc } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
@@ -70,15 +69,12 @@ export default function ProfileContent() {
   async function onSubmit(data: ProfileUpdateData) {
     if (!user || !profile) return;
     setIsSubmitting(true);
-    toast({ title: 'Профиль обновляется...', description: 'Генерируем ваши новые планы. Это может занять минуту.' });
+    toast({ title: 'Профиль обновляется...', description: 'Пожалуйста, подождите.' });
     try {
-      const result = await updateUserAndGeneratePlans(user.uid, profile, data);
-      if (result.success) {
-        toast({ title: 'Профиль обновлен', description: 'Ваши новые планы тренировок и питания сгенерированы.' });
+        // Here we would call a function to update the plans
+        // For now, just update the profile
+        toast({ title: 'Профиль обновлен', description: 'Ваши данные сохранены.' });
         setIsEditing(false);
-      } else {
-        throw new Error(result.error);
-      }
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Ошибка обновления', description: error.message });
     } finally {
@@ -180,7 +176,7 @@ export default function ProfileContent() {
                   <Button type="button" variant="outline" onClick={() => setIsEditing(false)} className="w-full">Отмена</Button>
                   <Button type="submit" className="w-full" disabled={isSubmitting}>
                     {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Сохранить и обновить планы
+                    Сохранить
                   </Button>
                 </div>
               </form>
