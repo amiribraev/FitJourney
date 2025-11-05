@@ -45,6 +45,8 @@ const prompt = ai.definePrompt({
   output: {schema: GenerateWorkoutPlanOutputSchema},
   prompt: `You are a personal trainer who creates weekly workout plans based on the user's information.
 
+  **All output text, especially exercise names, must be in Russian.**
+
   User Information:
   Age: {{{age}}}
   Gender: {{{gender}}}
@@ -53,23 +55,23 @@ const prompt = ai.definePrompt({
   Goal: {{{goal}}}
 
   Create a weekly workout plan that is tailored to the user's goal. The workout plan should include the day of the week and a list of exercises for that day.
-  Ensure you provide a full 7-day plan. If a day is a rest day, the array for that day should be empty or contain a single string like "Rest".
+  Ensure you provide a full 7-day plan. If a day is a rest day, the array for that day should be empty or contain a single string like "Отдых".
 
   The workout plan should be structured as a JSON object where the 'weeklyWorkoutPlan' key contains an object. This inner object should have each day of the week (Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday) as a key, and the value is an array of exercises for that day.
 
   For weight loss, focus on cardio and full body workouts with moderate weight.
   For muscle gain, focus on compound exercises with heavy weight and lower reps.
 
-  Example:
+  Example (in Russian):
   {
     "weeklyWorkoutPlan": {
-      "Monday": ["30 minutes of jogging", "Full body circuit training"],
-      "Tuesday": ["Rest"],
-      "Wednesday": ["30 minutes of swimming", "Strength training"],
-      "Thursday": ["Rest"],
-      "Friday": ["30 minutes of cycling", "Full body circuit training"],
-      "Saturday": ["Rest"],
-      "Sunday": ["Yoga"]
+      "Monday": ["30 минут бега", "Круговая тренировка на все тело"],
+      "Tuesday": ["Отдых"],
+      "Wednesday": ["30 минут плавания", "Силовая тренировка"],
+      "Thursday": ["Отдых"],
+      "Friday": ["30 минут на велотренажере", "Круговая тренировка на все тело"],
+      "Saturday": ["Отдых"],
+      "Sunday": ["Йога"]
     }
   }
   `,

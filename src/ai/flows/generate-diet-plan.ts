@@ -49,7 +49,10 @@ const prompt = ai.definePrompt({
   input: {schema: GenerateDietPlanInputSchema},
   output: {schema: GenerateDietPlanOutputSchema},
   prompt: `You are a personal trainer and nutritionist. You will generate a personalized weekly diet plan based on the user's age, gender, weight, height, and fitness goal.
+  
+  **All output text, especially meal names, must be in Russian.**
 
+  User data:
   Age: {{{age}}}
   Gender: {{{gender}}}
   Weight: {{{weight}}} kg
@@ -60,18 +63,18 @@ const prompt = ai.definePrompt({
   Each meal suggestion object in the array should include the meal and the estimated calorie count. Ensure that the calorie count aligns with the specified fitness goal.
   Ensure you provide a full 7-day plan.
 
-  Example:
+  Example (in Russian):
   {
     "weeklyDietPlan": {
       "Monday": [
-        { "meal": "Oatmeal with berries and nuts", "calories": 300 },
-        { "meal": "Grilled chicken salad", "calories": 400 },
-        { "meal": "Salmon with roasted vegetables", "calories": 500 }
+        { "meal": "Овсянка с ягодами и орехами", "calories": 300 },
+        { "meal": "Салат с курицей гриль", "calories": 400 },
+        { "meal": "Лосось с жареными овощами", "calories": 500 }
       ],
       "Tuesday": [
-        { "meal": "Greek yogurt with granola", "calories": 250 },
-        { "meal": "Turkey sandwich on whole wheat bread", "calories": 350 },
-        { "meal": "Lentil soup with a side of brown rice", "calories": 450 }
+        { "meal": "Греческий йогурт с гранолой", "calories": 250 },
+        { "meal": "Сэндвич с индейкой на цельнозерновом хлебе", "calories": 350 },
+        { "meal": "Чечевичный суп с порцией бурого риса", "calories": 450 }
       ],
       ...and so on for all 7 days.
     }
