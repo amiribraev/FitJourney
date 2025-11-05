@@ -14,3 +14,11 @@ export type UserProfile = {
   workoutPlan?: GenerateWorkoutPlanOutput;
   createdAt: string; 
 };
+
+export type ProgressLog = {
+  id: string; // YYYY-MM-DD
+  userId: string;
+  date: string; // ISO string
+  caloriesConsumed: number;
+  workoutCompleted?: boolean;
+};

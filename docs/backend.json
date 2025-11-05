@@ -130,6 +130,41 @@
         "endDate",
         "dailyExercises"
       ]
+    },
+    "ProgressLog": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ProgressLog",
+      "type": "object",
+      "description": "Represents a single day's progress log for a user.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the progress log, typically the date in YYYY-MM-DD format."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N ProgressLog)"
+        },
+        "date": {
+          "type": "string",
+          "description": "The date of the log entry.",
+          "format": "date"
+        },
+        "caloriesConsumed": {
+          "type": "number",
+          "description": "Total calories consumed on this day."
+        },
+        "workoutCompleted": {
+          "type": "boolean",
+          "description": "Whether the user completed their workout for the day."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "date",
+        "caloriesConsumed"
+      ]
     }
   },
   "auth": {
@@ -195,8 +230,28 @@
             }
           ]
         }
+      },
+      {
+        "path": "/users/{userId}/progressLogs/{logId}",
+        "definition": {
+          "entityName": "ProgressLog",
+          "schema": {
+            "$ref": "#/backend/entities/ProgressLog"
+          },
+          "description": "Stores daily progress logs for a user. The `userId` parameter corresponds to the Firebase Authentication UID, enforcing ownership. The logId should be the date in YYYY-MM-DD format.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The Firebase Authentication UID of the user."
+            },
+            {
+              "name": "logId",
+              "description": "The unique identifier for the log, formatted as YYYY-MM-DD."
+            }
+          ]
+        }
       }
     ],
-    "reasoning": "The Firestore structure is designed to address the application requirements for user profiles, diet plans, and workout plans while adhering to the principles of Authorization Independence, Structural Segregation, Access Modeling, and Data Clarity.  The core structure revolves around user-owned data nested under `/users/{userId}`. This ensures that diet and workout plans are directly associated with their respective users. Authorization independence is achieved by using path-based ownership. Since each `dietPlan` and `workoutPlan` is under the `users/{userId}` collection, security rules can simply check if the `request.auth.uid` matches the `{userId}`. This design avoids the need for `get()` calls in the security rules to check the user's role or ownership, making them simpler, more robust, and easier to debug. Segregation is achieved by keeping user profiles separate from diet and workout plans. The structure supports QAPs (rules are not filters) by leveraging the hierarchical structure. List operations are secure because each subcollection is owned by a specific user, which will be the primary filter in the security rules."
+    "reasoning": "The Firestore structure is designed to address the application requirements for user profiles, diet plans, workout plans, and progress tracking while adhering to the principles of Authorization Independence, Structural Segregation, Access Modeling, and Data Clarity. The core structure revolves around user-owned data nested under `/users/{userId}`. This ensures that all related data is directly associated with its respective user. Authorization independence is achieved by using path-based ownership. Since each subcollection is under the `users/{userId}` collection, security rules can simply check if the `request.auth.uid` matches the `{userId}`. This design avoids the need for `get()` calls in the security rules to check ownership, making them simpler and more robust. Segregation is achieved by keeping user profiles, diet plans, workout plans, and progress logs in separate collections."
   }
 }

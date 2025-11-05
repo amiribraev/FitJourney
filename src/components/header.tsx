@@ -11,6 +11,7 @@ import {
   Menu,
   UtensilsCrossed,
   HeartPulse,
+  TrendingUp,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -39,6 +40,12 @@ const navLinks = [
     href: '/workout-plan',
     label: 'Тренировки',
     icon: HeartPulse,
+    auth: true,
+  },
+  {
+    href: '/progress',
+    label: 'Прогресс',
+    icon: TrendingUp,
     auth: true,
   },
 ];
