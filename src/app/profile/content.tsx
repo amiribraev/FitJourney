@@ -14,9 +14,11 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { doc } from 'firebase/firestore';
+import { doc, updateDoc } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
+import { generatePlansForUser } from '@/app/actions/plans';
+
 
 export default function ProfileContent() {
   const { user, isUserLoading } = useUser();
@@ -69,12 +71,20 @@ export default function ProfileContent() {
   async function onSubmit(data: ProfileUpdateData) {
     if (!user || !profile) return;
     setIsSubmitting(true);
-    toast({ title: 'Профиль обновляется...', description: 'Пожалуйста, подождите.' });
+    
     try {
-        // Here we would call a function to update the plans
-        // For now, just update the profile
-        toast({ title: 'Профиль обновлен', description: 'Ваши данные сохранены.' });
-        setIsEditing(false);
+      const userDocRef = doc(firestore, 'users', user.uid);
+      await updateDoc(userDocRef, data);
+      
+      toast({ title: 'Профиль обновлен', description: 'Ваши данные сохранены. Начинаем генерацию новых планов...' });
+      setIsEditing(false);
+
+      // Fire-and-forget plan generation
+      generatePlansForUser(user.uid, {
+        ...profile, // spread existing profile data
+        ...data,    // overwrite with new form data
+      });
+
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Ошибка обновления', description: error.message });
     } finally {
@@ -176,7 +186,7 @@ export default function ProfileContent() {
                   <Button type="button" variant="outline" onClick={() => setIsEditing(false)} className="w-full">Отмена</Button>
                   <Button type="submit" className="w-full" disabled={isSubmitting}>
                     {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Сохранить
+                    Сохранить и перегенерировать планы
                   </Button>
                 </div>
               </form>

@@ -16,7 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import type { UserProfile } from '@/lib/definitions';
 import { doc, setDoc } from 'firebase/firestore';
-
+import { generatePlansForUser } from '@/app/actions/plans';
 
 export function RegisterForm() {
   const router = useRouter();
@@ -66,7 +66,16 @@ export function RegisterForm() {
 
       toast({
         title: 'Регистрация завершена!',
-        description: 'Ваш профиль создан. Перенаправляем...',
+        description: 'Ваш профиль создан. Генерируем планы...',
+      });
+      
+      // 3. Trigger plan generation (fire-and-forget)
+      generatePlansForUser(user.uid, {
+        age: data.age,
+        gender: data.gender,
+        weight: data.weight,
+        height: data.height,
+        goal: data.goal,
       });
 
       // 4. Redirect to profile
