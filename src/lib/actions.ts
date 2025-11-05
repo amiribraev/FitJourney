@@ -4,48 +4,55 @@
 import { revalidatePath } from 'next/cache';
 import { generateDietPlan } from '@/ai/flows/generate-diet-plan';
 import { generateWorkoutPlan } from '@/ai/flows/generate-workout-plan';
-import { createUserProfile, updateUserProfile } from './firebase/firestore';
+import { setDoc, doc } from 'firebase/firestore';
+import { getAuthenticatedAppForUser } from '@/lib/firebase/server-app';
 import type { UserProfile } from './definitions';
 import { type ProfileUpdateData } from './schema';
 
-// Helper function to run plan generation in the background
+
+// This function now runs on the server and is self-contained.
 async function generateAndSavePlans(userId: string, aiInput: { age: number, gender: 'male' | 'female', weight: number, height: number, goal: 'weight loss' | 'muscle gain' }) {
     try {
         console.log(`Начало генерации планов для пользователя ${userId}`);
+        const { firestore } = await getAuthenticatedAppForUser();
+        const userRef = doc(firestore, 'users', userId);
+
         const [dietPlanResult, workoutPlanResult] = await Promise.all([
             generateDietPlan(aiInput),
             generateWorkoutPlan(aiInput),
         ]);
 
-        const plansData: Partial<UserProfile> = {
+        const plansData = {
             dietPlan: dietPlanResult,
             workoutPlan: workoutPlanResult,
         };
 
-        await updateUserProfile(userId, plansData);
+        await setDoc(userRef, plansData, { merge: true });
         console.log(`Планы для пользователя ${userId} успешно созданы и сохранены.`);
         
-        // Revalidate paths after plans are updated to show new data
-        revalidatePath('/profile');
-        revalidatePath('/diet-plan');
-        revalidatePath('/workout-plan');
-
     } catch (error) {
-        console.error(`Ошибка при генерации планов для пользователя ${userId}:`, error);
-        // We don't throw here to avoid crashing the whole process if plan generation fails.
-        // The user profile is already created.
+        console.error(`Ошибка при генерации или сохранении планов для пользователя ${userId}:`, error);
+        // Re-throw the error to be caught by the calling function
+        throw new Error('Не удалось сгенерировать или сохранить планы.');
     }
 }
 
+
 export async function completeRegistration(userData: Omit<UserProfile, 'dietPlan' | 'workoutPlan' | 'createdAt'>) {
     try {
-        await createUserProfile(userData.uid, {
+        const { firestore } = await getAuthenticatedAppForUser();
+        const userRef = doc(firestore, 'users', userData.uid);
+        
+        // 1. Create the initial user profile document
+        const fullProfileData = {
             ...userData,
             createdAt: new Date().toISOString(),
-        });
-        
-        // Non-blocking call to generate plans in the background
-        generateAndSavePlans(userData.uid, {
+        };
+        await setDoc(userRef, fullProfileData);
+        console.log(`Профиль для пользователя ${userData.uid} успешно создан.`);
+
+        // 2. Generate and save plans, awaiting completion
+        await generateAndSavePlans(userData.uid, {
             age: userData.age,
             gender: userData.gender,
             weight: userData.weight,
@@ -53,46 +60,49 @@ export async function completeRegistration(userData: Omit<UserProfile, 'dietPlan
             goal: userData.goal,
         });
 
-        revalidatePath('/profile');
+        // 3. Revalidate paths to show new data
+        revalidatePath('/profile', 'layout');
+        
         return { success: true };
 
-    } catch (error) {
-        console.error('Ошибка при создании профиля пользователя:', error);
-        return { success: false, error: 'Не удалось создать профиль пользователя.' };
+    } catch (error: any) {
+        console.error('Ошибка при полной регистрации пользователя:', error);
+        return { success: false, error: error.message || 'Не удалось создать профиль и сгенерировать планы.' };
     }
 }
 
 
 export async function updateUserAndGeneratePlans(userId: string, profile: UserProfile, data: ProfileUpdateData) {
     try {
-        const updatedProfileData: Partial<UserProfile> = {
+        const { firestore } = await getAuthenticatedAppForUser();
+        const userRef = doc(firestore, 'users', userId);
+
+        const updatedProfileData = {
             weight: data.weight,
             height: data.height,
             goal: data.goal,
         };
         
-        // First, update the user's core profile data.
-        await updateUserProfile(userId, updatedProfileData);
+        // 1. Update the user's core profile data.
+        await setDoc(userRef, updatedProfileData, { merge: true });
         
         const aiInput = {
-            age: profile.age, // age and gender don't change
+            age: profile.age,
             gender: profile.gender,
-            weight: data.weight, // use new weight
-            height: data.height, // use new height
-            goal: data.goal,     // use new goal
+            weight: data.weight,
+            height: data.height,
+            goal: data.goal,
         };
 
-        // We don't await this so the UI can update faster.
-        // This will generate and save plans in the background.
-        generateAndSavePlans(userId, aiInput);
+        // 2. Await the generation and saving of new plans.
+        await generateAndSavePlans(userId, aiInput);
 
-        // Revalidate profile page immediately to show new weight/height/goal
-        revalidatePath('/profile');
+        // 3. Revalidate paths to show the newly generated data.
+        revalidatePath('/profile', 'layout');
 
         return { success: true };
-    } catch (error) {
+    } catch (error: any) {
         console.error('Ошибка обновления профиля:', error);
-        return { success: false, error: 'Не удалось обновить профиль и сгенерировать новые планы.' };
+        return { success: false, error: error.message || 'Не удалось обновить профиль и сгенерировать новые планы.' };
     }
 }
-
