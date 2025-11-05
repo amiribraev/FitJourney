@@ -1,14 +1,20 @@
+
 'use server';
 
-import { doc, getDoc, updateDoc, writeBatch } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { getAuthenticatedAppForUser } from '@/lib/firebase/server-app';
 import type { UserProfile } from '../definitions';
+
+export async function createUserProfile(uid: string, data: Omit<UserProfile, 'dietPlan' | 'workoutPlan'>) {
+    const { firestore } = await getAuthenticatedAppForUser();
+    const userRef = doc(firestore, 'users', uid);
+    await setDoc(userRef, data);
+}
 
 // This function now uses the server-side admin SDK for reliability
 export async function updateUserProfile(uid: string, data: Partial<UserProfile>) {
     const { firestore } = await getAuthenticatedAppForUser();
     const userRef = doc(firestore, 'users', uid);
-    // Using updateDoc is correct here as we are only updating parts of the profile
     await updateDoc(userRef, data);
 }
 
@@ -24,3 +30,4 @@ export async function getUserProfile(uid:string): Promise<UserProfile | null> {
         return null;
     }
 }
+

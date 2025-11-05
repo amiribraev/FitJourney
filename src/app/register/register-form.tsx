@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { useAuth, useFirestore } from '@/firebase';
+import { useAuth } from '@/firebase';
 import { RegistrationSchema, type RegistrationData } from '@/lib/schema';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,14 +14,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
-import { doc, setDoc } from 'firebase/firestore';
-import { UserProfile } from '@/lib/definitions';
+import { completeRegistration } from '@/lib/actions';
+import type { UserProfile } from '@/lib/definitions';
 
 
 export function RegisterForm() {
   const router = useRouter();
   const auth = useAuth();
-  const firestore = useFirestore();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -48,8 +47,8 @@ export function RegisterForm() {
       // Update Firebase Auth profile with name
       await updateProfile(user, { displayName: data.name });
 
-      // 2. Create profile object
-      const userProfileData: Omit<UserProfile, 'dietPlan' | 'workoutPlan'> = {
+      // 2. Create profile object to send to the server
+      const userProfileData: Omit<UserProfile, 'dietPlan' | 'workoutPlan' | 'createdAt'> = {
         uid: user.uid,
         email: data.email,
         name: data.name,
@@ -58,19 +57,14 @@ export function RegisterForm() {
         weight: data.weight,
         height: data.height,
         goal: data.goal,
-        createdAt: new Date().toISOString(),
       };
 
-      // 3. Save profile to Firestore from the client with the correct user.uid
-      const userDocRef = doc(firestore, 'users', user.uid);
-      await setDoc(userDocRef, userProfileData);
+      // 3. Call server action to create profile and generate plans
+      const result = await completeRegistration(userProfileData);
 
-      // Trigger plan generation in the background (non-blocking)
-      fetch('/api/generate-plans', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.uid, userProfile: userProfileData }),
-      });
+      if (!result.success) {
+        throw new Error(result.error || 'Не удалось завершить регистрацию.');
+      }
 
       toast({
         title: 'Регистрация завершена!',
