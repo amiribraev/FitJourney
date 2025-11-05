@@ -1,26 +1,30 @@
 'use client';
 
 import { useMemo } from 'react';
-import { useUser, useDoc, useMemoFirebase } from '@/firebase';
+import { useUser, useDoc, useMemoFirebase, useFirestore } from '@/firebase';
 import type { UserProfile } from '@/lib/definitions';
 import { Loader2, Dumbbell, HeartPulse, Bike, Zap } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { doc, getFirestore } from 'firebase/firestore';
+import { doc } from 'firebase/firestore';
 
 
-const exerciseIcons = {
-  default: <Dumbbell className="h-5 w-5 text-primary" />,
-  cardio: <HeartPulse className="h-5 w-5 text-red-500" />,
+const exerciseIcons: Record<string, JSX.Element> = {
+  jogging: <HeartPulse className="h-5 w-5 text-red-500" />,
+  running: <HeartPulse className="h-5 w-5 text-red-500" />,
+  swimming: <HeartPulse className="h-5 w-5 text-red-500" />,
   cycling: <Bike className="h-5 w-5 text-blue-500" />,
   circuit: <Zap className="h-5 w-5 text-yellow-500" />,
+  default: <Dumbbell className="h-5 w-5 text-primary" />,
 };
 
 const getExerciseIcon = (exercise: string) => {
   const lowerEx = exercise.toLowerCase();
-  if (lowerEx.includes('бег') || lowerEx.includes('jogging') || lowerEx.includes('swimming') || lowerEx.includes('плавание')) return exerciseIcons.cardio;
-  if (lowerEx.includes('cycling') || lowerEx.includes('велосипед')) return exerciseIcons.cycling;
-  if (lowerEx.includes('circuit') || lowerEx.includes('круговая')) return exerciseIcons.circuit;
+    for (const key in exerciseIcons) {
+    if (lowerEx.includes(key)) {
+      return exerciseIcons[key];
+    }
+  }
   return exerciseIcons.default;
 };
 
@@ -29,7 +33,7 @@ const dayOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Satur
 
 export default function WorkoutPlanContent() {
   const { user, isUserLoading } = useUser();
-  const firestore = getFirestore();
+  const firestore = useFirestore();
 
   const userProfileRef = useMemoFirebase(() => {
     if (!user) return null;
@@ -40,16 +44,20 @@ export default function WorkoutPlanContent() {
 
   const loading = isUserLoading || isProfileLoading;
 
+  const weeklyPlan = profile?.workoutPlan?.weeklyWorkoutPlan;
+  const sortedDays = useMemo(() => {
+    if (!weeklyPlan) return [];
+    return Object.keys(weeklyPlan).sort((a, b) => dayOrder.indexOf(a) - dayOrder.indexOf(b));
+  }, [weeklyPlan]);
+
+
   if (loading) {
     return (
-      <div className="flex h-full items-center justify-center">
+      <div className="flex h-[calc(100vh-200px)] items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
       </div>
     );
   }
-
-  const weeklyPlan = profile?.workoutPlan?.weeklyWorkoutPlan;
-  const sortedDays = weeklyPlan ? Object.keys(weeklyPlan).sort((a, b) => dayOrder.indexOf(a) - dayOrder.indexOf(b)) : [];
 
 
   return (
@@ -66,10 +74,10 @@ export default function WorkoutPlanContent() {
         </CardHeader>
         <CardContent>
           {weeklyPlan && sortedDays.length > 0 ? (
-            <Accordion type="single" collapsible className="w-full">
+            <Accordion type="single" collapsible className="w-full" defaultValue="item-0">
               {sortedDays.map((day, index) => (
                 <AccordionItem value={`item-${index}`} key={day}>
-                  <AccordionTrigger className="text-lg font-semibold hover:no-underline">
+                  <AccordionTrigger className="text-lg font-semibold hover:no-underline capitalize">
                     {day}
                   </AccordionTrigger>
                   <AccordionContent>
@@ -90,9 +98,10 @@ export default function WorkoutPlanContent() {
               ))}
             </Accordion>
           ) : (
-            <p className="text-center text-muted-foreground py-8">
-              План тренировок еще не создан. Пожалуйста, заполните свой профиль.
-            </p>
+            <div className="text-center text-muted-foreground py-8">
+                <p>План тренировок еще не создан.</p>
+                <p className="text-sm">Пожалуйста, заполните свой профиль или подождите, пока AI сгенерирует ваш план.</p>
+            </div>
           )}
         </CardContent>
       </Card>

@@ -1,9 +1,9 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2, User, Weight, Ruler, Target, Edit } from 'lucide-react';
+import { Loader2, User, Weight, Ruler, Target, Edit, LogOut } from 'lucide-react';
 import { useUser, useAuth as useFirebaseAuth, useDoc, useMemoFirebase, useFirestore } from '@/firebase';
 import type { UserProfile } from '@/lib/definitions';
 import { ProfileUpdateSchema, type ProfileUpdateData } from '@/lib/schema';
@@ -17,13 +17,14 @@ import { useToast } from '@/hooks/use-toast';
 import { updateUserAndGeneratePlans } from '@/lib/actions';
 import { doc } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
-import React from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function ProfileContent() {
   const { user, isUserLoading } = useUser();
   const auth = useFirebaseAuth();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const router = useRouter();
   
   const userProfileRef = useMemoFirebase(() => {
     if (!user) return null;
@@ -37,7 +38,6 @@ export default function ProfileContent() {
 
   const form = useForm<ProfileUpdateData>({
     resolver: zodResolver(ProfileUpdateSchema),
-    // `profile` can be null initially, so we need to provide fallbacks
     values: {
       weight: profile?.weight ?? 0,
       height: profile?.height ?? 0,
@@ -45,8 +45,6 @@ export default function ProfileContent() {
     }
   });
 
-  // This effect ensures the form is updated when the profile data loads
-  // It handles the case where the component renders before `profile` is fetched
   const { reset } = form;
   React.useEffect(() => {
     if (profile) {
@@ -62,9 +60,10 @@ export default function ProfileContent() {
   async function handleSignOut() {
     try {
       await signOut(auth);
-      window.location.href = '/login';
+      router.push('/login');
     } catch (error) {
       console.error('Error signing out:', error);
+      toast({ variant: "destructive", title: "Ошибка выхода", description: "Не удалось выйти из системы." });
     }
   }
   
@@ -87,7 +86,6 @@ export default function ProfileContent() {
     }
   }
 
-  // Unified loading state
   const isLoading = isUserLoading || isProfileLoading;
   
   if (isLoading) {
@@ -115,6 +113,8 @@ export default function ProfileContent() {
     );
   }
 
+  const plansExist = profile.dietPlan && profile.workoutPlan;
+
   return (
     <div className="container py-8 px-4 md:px-6">
       <Card className="w-full max-w-2xl mx-auto shadow-lg">
@@ -123,7 +123,9 @@ export default function ProfileContent() {
             <span>Профиль</span>
             {!isEditing && <Button variant="outline" size="icon" onClick={() => setIsEditing(true)}><Edit className="h-4 w-4" /></Button>}
           </CardTitle>
-          <CardDescription>Просмотр и редактирование ваших данных.</CardDescription>
+          <CardDescription>
+            {plansExist ? 'Просмотр и редактирование ваших данных.' : 'Ваши планы генерируются. Это может занять до минуты.'}
+            </CardDescription>
         </CardHeader>
         <CardContent>
           {!isEditing ? (
@@ -134,7 +136,10 @@ export default function ProfileContent() {
               <InfoItem icon={Ruler} label="Рост" value={`${profile.height} см`} />
               <InfoItem icon={User} label="Пол" value={profile.gender === 'male' ? 'Мужской' : 'Женский'} />
               <InfoItem icon={Target} label="Цель" value={profile.goal === 'weight loss' ? 'Похудение' : 'Набор массы'} />
-              <Button onClick={handleSignOut} variant="destructive" className="w-full mt-4">Выйти</Button>
+              <Button onClick={handleSignOut} variant="destructive" className="w-full mt-4">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Выйти
+              </Button>
             </div>
           ) : (
             <Form {...form}>
@@ -175,7 +180,7 @@ export default function ProfileContent() {
                   <Button type="button" variant="outline" onClick={() => setIsEditing(false)} className="w-full">Отмена</Button>
                   <Button type="submit" className="w-full" disabled={isSubmitting}>
                     {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Сохранить
+                    Сохранить и обновить планы
                   </Button>
                 </div>
               </form>

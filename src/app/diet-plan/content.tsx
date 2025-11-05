@@ -1,25 +1,28 @@
 'use client';
 
 import { useMemo } from 'react';
-import { useUser, useDoc, useMemoFirebase } from '@/firebase';
+import { useUser, useDoc, useMemoFirebase, useFirestore } from '@/firebase';
 import type { UserProfile } from '@/lib/definitions';
-import { Loader2, UtensilsCrossed, Salad, Fish, Soup } from 'lucide-react';
+import { Loader2, UtensilsCrossed, Salad, Fish, Soup, Utensils } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { doc, getFirestore } from 'firebase/firestore';
+import { doc } from 'firebase/firestore';
 
-const mealIcons = {
-  default: <UtensilsCrossed className="h-5 w-5 text-primary" />,
+const mealIcons: Record<string, JSX.Element> = {
   salad: <Salad className="h-5 w-5 text-green-500" />,
   salmon: <Fish className="h-5 w-5 text-pink-500" />,
+  fish: <Fish className="h-5 w-5 text-pink-500" />,
   soup: <Soup className="h-5 w-5 text-orange-500" />,
+  default: <Utensils className="h-5 w-5 text-primary" />,
 };
 
 const getMealIcon = (meal: string) => {
   const lowerMeal = meal.toLowerCase();
-  if (lowerMeal.includes('салат')) return mealIcons.salad;
-  if (lowerMeal.includes('лосось') || lowerMeal.includes('рыба')) return mealIcons.salmon;
-  if (lowerMeal.includes('суп')) return mealIcons.soup;
+  for (const key in mealIcons) {
+    if (lowerMeal.includes(key)) {
+      return mealIcons[key];
+    }
+  }
   return mealIcons.default;
 };
 
@@ -27,7 +30,7 @@ const dayOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Satur
 
 export default function DietPlanContent() {
   const { user, isUserLoading } = useUser();
-  const firestore = getFirestore();
+  const firestore = useFirestore();
 
   const userProfileRef = useMemoFirebase(() => {
     if (!user) return null;
@@ -38,18 +41,21 @@ export default function DietPlanContent() {
 
   const loading = isUserLoading || isProfileLoading;
 
+  const weeklyPlan = profile?.dietPlan?.weeklyDietPlan;
+  
+  const sortedDays = useMemo(() => {
+    if (!weeklyPlan) return [];
+    return Object.keys(weeklyPlan).sort((a, b) => dayOrder.indexOf(a) - dayOrder.indexOf(b));
+  }, [weeklyPlan]);
+
+
   if (loading) {
     return (
-      <div className="flex h-full items-center justify-center">
+      <div className="flex h-[calc(100vh-200px)] items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
       </div>
     );
   }
-
-  const weeklyPlan = profile?.dietPlan?.weeklyDietPlan;
-  
-  const sortedDays = weeklyPlan ? Object.keys(weeklyPlan).sort((a, b) => dayOrder.indexOf(a) - dayOrder.indexOf(b)) : [];
-
 
   return (
     <div className="container py-8 px-4 md:px-6">
@@ -65,10 +71,10 @@ export default function DietPlanContent() {
         </CardHeader>
         <CardContent>
           {weeklyPlan && sortedDays.length > 0 ? (
-            <Accordion type="single" collapsible className="w-full">
+            <Accordion type="single" collapsible className="w-full" defaultValue="item-0">
               {sortedDays.map((day, index) => (
                 <AccordionItem value={`item-${index}`} key={day}>
-                  <AccordionTrigger className="text-lg font-semibold hover:no-underline">
+                  <AccordionTrigger className="text-lg font-semibold hover:no-underline capitalize">
                     {day}
                   </AccordionTrigger>
                   <AccordionContent>
@@ -88,9 +94,10 @@ export default function DietPlanContent() {
               ))}
             </Accordion>
           ) : (
-            <p className="text-center text-muted-foreground py-8">
-              План питания еще не создан. Пожалуйста, заполните свой профиль.
-            </p>
+             <div className="text-center text-muted-foreground py-8">
+                <p>План питания еще не создан.</p>
+                <p className="text-sm">Пожалуйста, заполните свой профиль или подождите, пока AI сгенерирует ваш план.</p>
+            </div>
           )}
         </CardContent>
       </Card>
