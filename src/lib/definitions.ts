@@ -12,5 +12,5 @@ export type UserProfile = {
   goal: 'weight loss' | 'muscle gain';
   dietPlan?: GenerateDietPlanOutput;
   workoutPlan?: GenerateWorkoutPlanOutput;
-  createdAt: string; // Changed to string to store ISO date string
+  createdAt: string; 
 };

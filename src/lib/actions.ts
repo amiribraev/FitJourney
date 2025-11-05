@@ -18,15 +18,8 @@ export async function completeRegistration(userId: string, data: unknown) {
   const { name, email, age, gender, weight, height, goal } = validationResult.data;
 
   try {
-    const aiInput = { age, gender, weight, height, goal };
-
-    // Generate plans in parallel
-    const [dietPlanResult, workoutPlanResult] = await Promise.all([
-      generateDietPlan(aiInput),
-      generateWorkoutPlan(aiInput),
-    ]);
-
-    const userProfileData: Omit<UserProfile, 'createdAt'> = {
+    // Step 1: Create the initial user profile without the plans
+    const initialProfileData: Omit<UserProfile, 'createdAt' | 'dietPlan' | 'workoutPlan'> = {
       uid: userId,
       email,
       name,
@@ -35,20 +28,34 @@ export async function completeRegistration(userId: string, data: unknown) {
       weight,
       height,
       goal,
-      dietPlan: dietPlanResult,
-      workoutPlan: workoutPlanResult,
     };
     
-    // Correctly pass the full userProfileData object
-    await createUserProfile(userId, userProfileData);
+    await createUserProfile(userId, initialProfileData);
+    
+    // Step 2: Generate plans in parallel
+    const aiInput = { age, gender, weight, height, goal };
+    const [dietPlanResult, workoutPlanResult] = await Promise.all([
+      generateDietPlan(aiInput),
+      generateWorkoutPlan(aiInput),
+    ]);
+
+    // Step 3: Update the user profile with the generated plans
+    const plansData: Partial<UserProfile> = {
+        dietPlan: dietPlanResult,
+        workoutPlan: workoutPlanResult,
+    };
+
+    await updateUserProfile(userId, plansData);
 
     revalidatePath('/profile');
     revalidatePath('/diet-plan');
     revalidatePath('/workout-plan');
 
-    return { success: true, data: userProfileData };
+    return { success: true };
   } catch (error) {
     console.error('Registration completion error:', error);
+    // Even if plan generation fails, the user might already be created.
+    // The error message reflects this might be a multi-step failure.
     return { success: false, error: 'Failed to generate plans or save profile.' };
   }
 }
