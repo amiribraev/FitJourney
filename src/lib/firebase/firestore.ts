@@ -1,29 +1,29 @@
+
 'use server';
 
-import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
-import { initializeApp, getApps, getApp } from 'firebase/app';
+import { doc, setDoc, getDoc, updateDoc, Firestore } from 'firebase/firestore';
+import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 import type { UserProfile } from '../definitions';
 import { firebaseConfig } from '@/firebase/config';
 
-// Function to initialize Firebase on the server-side if not already done.
-function initializeFirebaseAdmin() {
-  if (!getApps().length) {
-    return initializeApp(firebaseConfig);
-  }
-  return getApp();
+// A more robust way to initialize Firebase on the server-side.
+// This ensures we have a singleton instance.
+let app: FirebaseApp;
+let db: Firestore;
+
+if (!getApps().length) {
+  app = initializeApp(firebaseConfig);
+} else {
+  app = getApp();
 }
+db = getFirestore(app);
 
-const app = initializeFirebaseAdmin();
-const db = getFirestore(app);
 
-export async function createUserProfile(uid: string, data: Omit<UserProfile, 'createdAt' | 'dietPlan' | 'workoutPlan'>) {
+export async function createUserProfile(uid: string, data: Omit<UserProfile, 'dietPlan' | 'workoutPlan'>) {
   const userRef = doc(db, 'users', uid);
-  const profileData = {
-    ...data,
-    createdAt: new Date().toISOString(),
-  };
-  return await setDoc(userRef, profileData);
+  // The data object is now passed directly, which is correct.
+  await setDoc(userRef, data);
 }
 
 export async function getUserProfile(uid:string): Promise<UserProfile | null> {
@@ -39,5 +39,5 @@ export async function getUserProfile(uid:string): Promise<UserProfile | null> {
 
 export async function updateUserProfile(uid: string, data: Partial<UserProfile>) {
     const userRef = doc(db, 'users', uid);
-    return await updateDoc(userRef, data);
+    await updateDoc(userRef, data);
 }

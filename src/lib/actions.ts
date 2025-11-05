@@ -1,3 +1,4 @@
+
 'use server';
 
 import { revalidatePath } from 'next/cache';
@@ -19,8 +20,7 @@ export async function completeRegistration(userId: string, data: RegistrationDat
   const { name, email, age, gender, weight, height, goal } = validationResult.data;
 
   try {
-    // Step 1: Create the initial user profile WITHOUT the plans.
-    const userProfileData: Omit<UserProfile, 'createdAt' | 'dietPlan' | 'workoutPlan'> = {
+    const userProfileData: Omit<UserProfile, 'dietPlan' | 'workoutPlan'> = {
       uid: userId,
       email,
       name,
@@ -29,24 +29,22 @@ export async function completeRegistration(userId: string, data: RegistrationDat
       weight,
       height,
       goal,
+      createdAt: new Date().toISOString(),
     };
     
     await createUserProfile(userId, userProfileData);
     
-    // Step 2: Asynchronously generate plans.
-    // We don't await this here so the registration can complete faster.
+    // We don't await this so the registration can complete faster.
     generateAndSavePlans(userId, { age, gender, weight, height, goal }).then(() => {
-        // Revalidate paths after plans are saved
         revalidatePath('/profile');
         revalidatePath('/diet-plan');
         revalidatePath('/workout-plan');
     });
 
-    // The registration is considered successful as soon as the profile is created.
     return { success: true };
 
-  } catch (error) {
-    console.error('Ошибка завершения регистрации:', error);
+  } catch (error: any) {
+    console.error('Ошибка завершения регистрации:', error.message);
     return { success: false, error: 'Не удалось создать профиль пользователя.' };
   }
 }
@@ -88,10 +86,9 @@ export async function updateUserAndGeneratePlans(userId: string, data: ProfileUp
         };
 
         // Update profile and generate plans in parallel
-        const [dietPlanResult, workoutPlanResult] = await Promise.all([
+        const [dietPlanResult, workoutPlanResult, _] = await Promise.all([
             generateDietPlan(aiInput),
             generateWorkoutPlan(aiInput),
-            // Update the user's core info immediately
             updateUserProfile(userId, {
                 weight: data.weight,
                 height: data.height,
@@ -99,7 +96,6 @@ export async function updateUserAndGeneratePlans(userId: string, data: ProfileUp
             })
         ]);
 
-        // Now update the profile again with the generated plans
         await updateUserProfile(userId, {
             dietPlan: dietPlanResult,
             workoutPlan: workoutPlanResult,
