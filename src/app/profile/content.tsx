@@ -48,6 +48,8 @@ export default function ProfileContent() {
           console.error("Failed to fetch profile:", error);
           setLoading(false);
         });
+    } else {
+      setLoading(false);
     }
   }, [user, form]);
   
@@ -57,7 +59,9 @@ export default function ProfileContent() {
     try {
       const result = await updateUserAndGeneratePlans(user.uid, data);
       if (result.success) {
-        setProfile(prev => prev ? { ...prev, ...result.data } : null);
+        // Optimistically update profile state before re-fetching
+        const updatedProfile = { ...profile, ...result.data } as UserProfile;
+        setProfile(updatedProfile);
         toast({ title: 'Профиль обновлен', description: 'Ваши новые планы тренировок и питания сгенерированы.' });
         setIsEditing(false);
       } else {
@@ -81,7 +85,7 @@ export default function ProfileContent() {
   if (!profile) {
     return (
       <div className="container py-8 text-center">
-        <p>Не удалось загрузить профиль. Попробуйте обновить страницу.</p>
+        <p>Не удалось загрузить профиль. Пожалуйста, войдите в систему или зарегистрируйтесь.</p>
       </div>
     );
   }
@@ -113,14 +117,14 @@ export default function ProfileContent() {
                 <FormField control={form.control} name="weight" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Вес (в кг)</FormLabel>
-                    <FormControl><Input type="number" {...field} /></FormControl>
+                    <FormControl><Input type="number" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />
                 <FormField control={form.control} name="height" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Рост (в см)</FormLabel>
-                    <FormControl><Input type="number" {...field} /></FormControl>
+                    <FormControl><Input type="number" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />
