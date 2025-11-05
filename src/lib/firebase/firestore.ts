@@ -1,3 +1,5 @@
+'use server';
+
 import { doc, setDoc, getDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
@@ -20,10 +22,10 @@ const db = getFirestore(app);
 
 export async function createUserProfile(uid: string, data: Omit<UserProfile, 'createdAt'>) {
   const userRef = doc(db, 'users', uid);
-  // Pass the entire data object to be saved, with the addition of the timestamp.
+  // Using new Date().toISOString() for server-side timestamp generation for reliability
   return await setDoc(userRef, {
     ...data,
-    createdAt: serverTimestamp(),
+    createdAt: new Date().toISOString(),
   });
 }
 
