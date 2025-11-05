@@ -5,7 +5,7 @@ import { Logo } from '@/components/logo';
 import { Button } from '@/components/ui/button';
 
 export const metadata = {
-  title: 'Войти | FitJourney',
+  title: 'Вход | ФитПуть',
 };
 
 export default function LoginPage() {

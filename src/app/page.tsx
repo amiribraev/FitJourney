@@ -24,7 +24,7 @@ export default function Home() {
         <div className="absolute inset-0 bg-black/50" />
         <div className="relative z-10 container px-4 md:px-6">
           <h1 className="text-4xl md:text-6xl font-headline font-bold text-white tracking-tighter">
-            Ваш путь к здоровью с FitJourney
+            Ваш путь к здоровью с ФитПуть
           </h1>
           <p className="mt-4 max-w-2xl mx-auto text-lg md:text-xl text-gray-200">
             Получите персональные планы питания и тренировок, созданные искусственным интеллектом, чтобы достичь ваших целей.
@@ -62,7 +62,7 @@ export default function Home() {
                     <CheckCircle className="w-8 h-8 text-primary" />
                     <div>
                       <h3 className="font-semibold">Научно-обоснованные методики</h3>
-                      <p className="text-sm text-muted-foreground">Рекомендации на основе данных от AI.</p>
+                      <p className="text-sm text-muted-foreground">Рекомендации на основе данных от ИИ.</p>
                     </div>
                   </div>
                 </CardContent>

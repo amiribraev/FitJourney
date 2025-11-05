@@ -31,13 +31,13 @@ const navLinks = [
   { href: '/', label: 'Главная', icon: Home },
   {
     href: '/diet-plan',
-    label: 'Рацион питания',
+    label: 'Рацион',
     icon: UtensilsCrossed,
     auth: true,
   },
   {
     href: '/workout-plan',
-    label: 'Упражнения',
+    label: 'Тренировки',
     icon: HeartPulse,
     auth: true,
   },

@@ -67,7 +67,7 @@ export default function DietPlanContent() {
         <CardHeader>
           <CardTitle className="text-3xl font-headline flex items-center gap-2">
             <UtensilsCrossed className="h-8 w-8 text-primary" />
-            Ваш недельный рацион питания
+            Ваш недельный рацион
           </CardTitle>
           <CardDescription>
             Этот план питания составлен ИИ специально для вас, чтобы помочь в достижении цели: {profile?.goal === 'weight loss' ? 'похудение' : 'набор массы'}.
@@ -82,8 +82,8 @@ export default function DietPlanContent() {
                 </AccordionTrigger>
                 <AccordionContent>
                   <ul className="space-y-4 pt-2">
-                    {weeklyPlan && weeklyPlan[day] ? (
-                      weeklyPlan[day].map((meal, mealIndex) => (
+                    {weeklyPlan && weeklyPlan[day as keyof typeof weeklyPlan] ? (
+                      (weeklyPlan[day as keyof typeof weeklyPlan] as { meal: string, calories: number }[]).map((meal, mealIndex) => (
                         <li key={mealIndex} className="flex items-start gap-4 p-4 rounded-lg bg-background">
                           <div>{getMealIcon(meal.meal)}</div>
                           <div className="flex-1">

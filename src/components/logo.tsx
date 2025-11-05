@@ -3,10 +3,10 @@ import Link from 'next/link';
 
 export function Logo() {
   return (
-    <Link href="/" className="flex items-center gap-2" aria-label="FitJourney Home">
+    <Link href="/" className="flex items-center gap-2" aria-label="ФитПуть Главная">
       <Dumbbell className="h-8 w-8 text-primary" />
       <span className="hidden sm:inline-block text-xl font-bold tracking-tight text-foreground font-headline">
-        FitJourney
+        ФитПуть
       </span>
     </Link>
   );

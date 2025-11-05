@@ -2,7 +2,7 @@ import AuthGuard from '@/components/auth-guard';
 import ProfileContent from './content';
 
 export const metadata = {
-  title: 'Мой профиль | FitJourney',
+  title: 'Мой профиль | ФитПуть',
 };
 
 export default function ProfilePage() {

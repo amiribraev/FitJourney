@@ -5,8 +5,8 @@ import { Toaster } from "@/components/ui/toaster"
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'FitJourney',
-  description: 'Your personal AI-powered fitness and nutrition guide.',
+  title: 'ФитПуть',
+  description: 'Ваш персональный гид по фитнесу и питанию на базе ИИ.',
 };
 
 export default function RootLayout({

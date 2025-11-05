@@ -4,7 +4,7 @@ import { RegisterForm } from './register-form';
 import { Logo } from '@/components/logo';
 
 export const metadata = {
-  title: 'Регистрация | FitJourney',
+  title: 'Регистрация | ФитПуть',
 };
 
 export default function RegisterPage() {
@@ -15,7 +15,7 @@ export default function RegisterPage() {
           <div className="flex justify-center mb-4">
             <Logo />
           </div>
-          <CardTitle className="text-2xl font-headline">Присоединяйтесь к FitJourney</CardTitle>
+          <CardTitle className="text-2xl font-headline">Присоединяйтесь к ФитПуть</CardTitle>
           <CardDescription>Создайте аккаунт, чтобы получить персональные планы</CardDescription>
         </CardHeader>
         <CardContent>

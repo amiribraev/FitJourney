@@ -84,14 +84,14 @@ export default function WorkoutPlanContent() {
                 </AccordionTrigger>
                 <AccordionContent>
                   <ul className="space-y-4 pt-2">
-                    {weeklyPlan && weeklyPlan[day] && weeklyPlan[day].length > 0 ? (
-                      weeklyPlan[day].map((exercise, exIndex) => (
+                    {weeklyPlan && weeklyPlan[day as keyof typeof weeklyPlan] && (weeklyPlan[day as keyof typeof weeklyPlan] as string[]).length > 0 ? (
+                      (weeklyPlan[day as keyof typeof weeklyPlan] as string[]).map((exercise, exIndex) => (
                         <li key={exIndex} className="flex items-center gap-4 p-4 rounded-lg bg-background">
                           {getExerciseIcon(exercise)}
                           <p className="font-medium">{exercise}</p>
                         </li>
                       ))
-                    ) : weeklyPlan && (weeklyPlan[day]?.length === 0 || !weeklyPlan[day]) ? (
+                    ) : weeklyPlan && ((weeklyPlan[day as keyof typeof weeklyPlan] as string[])?.length === 0 || !weeklyPlan[day as keyof typeof weeklyPlan]) ? (
                        <li className="flex items-center gap-4 p-4 rounded-lg bg-background">
                             <p className="font-medium text-muted-foreground">День отдыха</p>
                         </li>
