@@ -14,13 +14,11 @@ function initializeFirebaseAdmin() {
   return getApp();
 }
 
-// Note: It's generally better to get the db instance from a provider/context
-// if you are working in a client component, to ensure it's initialized.
-// For server actions or server components, this approach is fine.
+const app = initializeFirebaseAdmin();
+const db = getFirestore(app);
+
 
 export async function createUserProfile(uid: string, data: Omit<UserProfile, 'createdAt'>) {
-  const app = initializeFirebaseAdmin();
-  const db = getFirestore(app);
   const userRef = doc(db, 'users', uid);
   // Pass the entire data object to be saved, with the addition of the timestamp.
   return await setDoc(userRef, {
@@ -31,8 +29,6 @@ export async function createUserProfile(uid: string, data: Omit<UserProfile, 'cr
 
 
 export async function getUserProfile(uid:string): Promise<UserProfile | null> {
-    const app = initializeFirebaseAdmin();
-    const db = getFirestore(app);
     const userRef = doc(db, 'users', uid);
     const docSnap = await getDoc(userRef);
 
@@ -44,8 +40,6 @@ export async function getUserProfile(uid:string): Promise<UserProfile | null> {
 }
 
 export async function updateUserProfile(uid: string, data: Partial<UserProfile>) {
-    const app = initializeFirebaseAdmin();
-    const db = getFirestore(app);
     const userRef = doc(db, 'users', uid);
     return await updateDoc(userRef, data);
 }
