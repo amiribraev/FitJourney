@@ -28,6 +28,15 @@ const getMealIcon = (meal: string) => {
 };
 
 const dayOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const dayTranslations: Record<string, string> = {
+  Monday: 'Понедельник',
+  Tuesday: 'Вторник',
+  Wednesday: 'Среда',
+  Thursday: 'Четверг',
+  Friday: 'Пятница',
+  Saturday: 'Суббота',
+  Sunday: 'Воскресенье',
+};
 
 export default function DietPlanContent() {
   const { user, isUserLoading } = useUser();
@@ -69,7 +78,7 @@ export default function DietPlanContent() {
             {dayOrder.map((day, index) => (
               <AccordionItem value={`item-${index}`} key={day}>
                 <AccordionTrigger className="text-lg font-semibold hover:no-underline capitalize">
-                  {day}
+                  {dayTranslations[day]}
                 </AccordionTrigger>
                 <AccordionContent>
                   <ul className="space-y-4 pt-2">

@@ -29,6 +29,15 @@ const getExerciseIcon = (exercise: string) => {
 };
 
 const dayOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const dayTranslations: Record<string, string> = {
+  Monday: 'Понедельник',
+  Tuesday: 'Вторник',
+  Wednesday: 'Среда',
+  Thursday: 'Четверг',
+  Friday: 'Пятница',
+  Saturday: 'Суббота',
+  Sunday: 'Воскресенье',
+};
 
 
 export default function WorkoutPlanContent() {
@@ -71,7 +80,7 @@ export default function WorkoutPlanContent() {
             {dayOrder.map((day, index) => (
               <AccordionItem value={`item-${index}`} key={day}>
                 <AccordionTrigger className="text-lg font-semibold hover:no-underline capitalize">
-                  {day}
+                  {dayTranslations[day]}
                 </AccordionTrigger>
                 <AccordionContent>
                   <ul className="space-y-4 pt-2">
@@ -82,7 +91,7 @@ export default function WorkoutPlanContent() {
                           <p className="font-medium">{exercise}</p>
                         </li>
                       ))
-                    ) : weeklyPlan && weeklyPlan[day] && weeklyPlan[day].length === 0 ? (
+                    ) : weeklyPlan && (weeklyPlan[day]?.length === 0 || !weeklyPlan[day]) ? (
                        <li className="flex items-center gap-4 p-4 rounded-lg bg-background">
                             <p className="font-medium text-muted-foreground">День отдыха</p>
                         </li>
