@@ -6,16 +6,17 @@ import { getStorage } from 'firebase-admin/storage';
 import { SERVICE_ACCOUNT } from './service-account';
 
 
-export async function getAuthenticatedAppForUser() {
-    const appName = "firebase-frameworks";
-    const existingApp = getApps().find(app => app.name === appName);
-    if (existingApp) {
-        return {
-            app: existingApp,
-            auth: getAuth(existingApp),
-            firestore: getFirestore(existingApp),
-            storage: getStorage(existingApp),
-        };
+export function getAuthenticatedAppForUser() {
+    const appName = "firebase-frameworks-server-app";
+    // This pattern prevents reinitializing the app on every call
+    if (getApps().some((app) => app.name === appName)) {
+      const app = getApp(appName);
+      return {
+          app,
+          auth: getAuth(app),
+          firestore: getFirestore(app),
+          storage: getStorage(app),
+      };
     }
 
     const app = initializeApp({
@@ -23,10 +24,9 @@ export async function getAuthenticatedAppForUser() {
         storageBucket: SERVICE_ACCOUNT.project_id + ".appspot.com",
     }, appName);
 
-    return {
-        app,
-        auth: getAuth(app),
-        firestore: getFirestore(app),
-        storage: getStorage(app),
-    };
+    const auth = getAuth(app);
+    const firestore = getFirestore(app);
+    const storage = getStorage(app);
+
+    return { app, auth, firestore, storage };
 }

@@ -4,7 +4,6 @@
 import { revalidatePath } from 'next/cache';
 import { generateDietPlan } from '@/ai/flows/generate-diet-plan';
 import { generateWorkoutPlan } from '@/ai/flows/generate-workout-plan';
-import { setDoc, doc } from 'firebase/firestore';
 import { getAuthenticatedAppForUser } from '@/lib/firebase/server-app';
 import type { UserProfile } from './definitions';
 import { type ProfileUpdateData } from './schema';
@@ -15,7 +14,7 @@ async function generateAndSavePlans(userId: string, aiInput: { age: number, gend
     try {
         console.log(`Начало генерации планов для пользователя ${userId}`);
         const { firestore } = await getAuthenticatedAppForUser();
-        const userRef = doc(firestore, 'users', userId);
+        const userRef = firestore.collection('users').doc(userId);
 
         const [dietPlanResult, workoutPlanResult] = await Promise.all([
             generateDietPlan(aiInput),
@@ -27,7 +26,7 @@ async function generateAndSavePlans(userId: string, aiInput: { age: number, gend
             workoutPlan: workoutPlanResult,
         };
 
-        await setDoc(userRef, plansData, { merge: true });
+        await userRef.set(plansData, { merge: true });
         console.log(`Планы для пользователя ${userId} успешно созданы и сохранены.`);
         
     } catch (error) {
@@ -41,14 +40,14 @@ async function generateAndSavePlans(userId: string, aiInput: { age: number, gend
 export async function completeRegistration(userData: Omit<UserProfile, 'dietPlan' | 'workoutPlan' | 'createdAt'>) {
     try {
         const { firestore } = await getAuthenticatedAppForUser();
-        const userRef = doc(firestore, 'users', userData.uid);
+        const userRef = firestore.collection('users').doc(userData.uid);
         
         // 1. Create the initial user profile document
         const fullProfileData = {
             ...userData,
             createdAt: new Date().toISOString(),
         };
-        await setDoc(userRef, fullProfileData);
+        await userRef.set(fullProfileData);
         console.log(`Профиль для пользователя ${userData.uid} успешно создан.`);
 
         // 2. Generate and save plans, awaiting completion
@@ -62,6 +61,8 @@ export async function completeRegistration(userData: Omit<UserProfile, 'dietPlan
 
         // 3. Revalidate paths to show new data
         revalidatePath('/profile', 'layout');
+        revalidatePath('/diet-plan', 'layout');
+        revalidatePath('/workout-plan', 'layout');
         
         return { success: true };
 
@@ -75,7 +76,7 @@ export async function completeRegistration(userData: Omit<UserProfile, 'dietPlan
 export async function updateUserAndGeneratePlans(userId: string, profile: UserProfile, data: ProfileUpdateData) {
     try {
         const { firestore } = await getAuthenticatedAppForUser();
-        const userRef = doc(firestore, 'users', userId);
+        const userRef = firestore.collection('users').doc(userId);
 
         const updatedProfileData = {
             weight: data.weight,
@@ -84,7 +85,7 @@ export async function updateUserAndGeneratePlans(userId: string, profile: UserPr
         };
         
         // 1. Update the user's core profile data.
-        await setDoc(userRef, updatedProfileData, { merge: true });
+        await userRef.set(updatedProfileData, { merge: true });
         
         const aiInput = {
             age: profile.age,
@@ -99,6 +100,8 @@ export async function updateUserAndGeneratePlans(userId: string, profile: UserPr
 
         // 3. Revalidate paths to show the newly generated data.
         revalidatePath('/profile', 'layout');
+        revalidatePath('/diet-plan', 'layout');
+        revalidatePath('/workout-plan', 'layout');
 
         return { success: true };
     } catch (error: any) {
