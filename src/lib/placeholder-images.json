@@ -1,3 +1,10 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "hero",
+      "description": "A person working out in a gym, conveying a sense of energy and motivation.",
+      "imageUrl": "https://images.unsplash.com/photo-1730127329554-70ed445592aa?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8Zml0bmVzcyUyMHdvcmtvdXR8ZW58MHx8fHwxNzYyMjc5NjEwfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "fitness workout"
+    }
+  ]
 }
