@@ -6,9 +6,9 @@
       "type": "object",
       "description": "Represents a user in the FitJourney application.",
       "properties": {
-        "id": {
+        "uid": {
           "type": "string",
-          "description": "Unique identifier for the user."
+          "description": "Unique identifier for the user (matches Firebase Auth UID)."
         },
         "email": {
           "type": "string",
@@ -41,7 +41,7 @@
         }
       },
       "required": [
-        "id",
+        "uid",
         "email",
         "name",
         "age",
