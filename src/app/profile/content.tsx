@@ -70,7 +70,7 @@ export default function ProfileContent() {
     }
   }
 
-  if (isUserLoading || (user && isProfileLoading)) {
+  if (isUserLoading || (user && isProfileLoading && !profile)) {
     return (
       <div className="flex h-full items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -78,7 +78,7 @@ export default function ProfileContent() {
     );
   }
 
-  if (!profile) {
+  if (!user || !profile) {
     return (
       <div className="container py-8 text-center">
         <p>Не удалось загрузить профиль. Пожалуйста, войдите в систему или зарегистрируйтесь.</p>

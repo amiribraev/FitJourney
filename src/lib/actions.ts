@@ -25,7 +25,7 @@ export async function completeRegistration(userId: string, data: unknown) {
       generateWorkoutPlan(aiInput),
     ]);
 
-    const userProfile: Omit<UserProfile, 'createdAt'> = {
+    const userProfileData: Omit<UserProfile, 'createdAt'> = {
       uid: userId,
       email,
       name,
@@ -38,13 +38,13 @@ export async function completeRegistration(userId: string, data: unknown) {
       workoutPlan: workoutPlanResult,
     };
 
-    await createUserProfile(userId, userProfile);
+    await createUserProfile(userId, userProfileData);
 
     revalidatePath('/profile');
     revalidatePath('/diet-plan');
     revalidatePath('/workout-plan');
 
-    return { success: true, data: userProfile };
+    return { success: true, data: userProfileData };
   } catch (error) {
     console.error('Registration completion error:', error);
     return { success: false, error: 'Failed to generate plans or save profile.' };
@@ -71,7 +71,7 @@ export async function updateUserAndGeneratePlans(userId: string, data: { weight:
             generateWorkoutPlan(aiInput),
         ]);
 
-        const updatedData = {
+        const updatedData: Partial<UserProfile> = {
             weight: data.weight,
             height: data.height,
             goal: data.goal,
