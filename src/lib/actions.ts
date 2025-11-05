@@ -13,9 +13,10 @@ import { type ProfileUpdateData } from './schema';
 async function generateAndSavePlans(userId: string, aiInput: { age: number, gender: 'male' | 'female', weight: number, height: number, goal: 'weight loss' | 'muscle gain' }) {
     try {
         console.log(`Начало генерации планов для пользователя ${userId}`);
-        const { firestore } = await getAuthenticatedAppForUser();
+        const { firestore } = getAuthenticatedAppForUser();
         const userRef = firestore.collection('users').doc(userId);
 
+        // We run plan generation in parallel
         const [dietPlanResult, workoutPlanResult] = await Promise.all([
             generateDietPlan(aiInput),
             generateWorkoutPlan(aiInput),
@@ -26,6 +27,7 @@ async function generateAndSavePlans(userId: string, aiInput: { age: number, gend
             workoutPlan: workoutPlanResult,
         };
 
+        // We merge the new plans into the existing user document.
         await userRef.set(plansData, { merge: true });
         console.log(`Планы для пользователя ${userId} успешно созданы и сохранены.`);
         
@@ -39,11 +41,11 @@ async function generateAndSavePlans(userId: string, aiInput: { age: number, gend
 
 export async function completeRegistration(userData: Omit<UserProfile, 'dietPlan' | 'workoutPlan' | 'createdAt'>) {
     try {
-        const { firestore } = await getAuthenticatedAppForUser();
+        const { firestore } = getAuthenticatedAppForUser();
         const userRef = firestore.collection('users').doc(userData.uid);
         
-        // 1. Create the initial user profile document
-        const fullProfileData = {
+        // 1. Create the initial user profile document in Firestore
+        const fullProfileData: Omit<UserProfile, 'dietPlan' | 'workoutPlan'> = {
             ...userData,
             createdAt: new Date().toISOString(),
         };
@@ -75,7 +77,7 @@ export async function completeRegistration(userData: Omit<UserProfile, 'dietPlan
 
 export async function updateUserAndGeneratePlans(userId: string, profile: UserProfile, data: ProfileUpdateData) {
     try {
-        const { firestore } = await getAuthenticatedAppForUser();
+        const { firestore } = getAuthenticatedAppForUser();
         const userRef = firestore.collection('users').doc(userId);
 
         const updatedProfileData = {
@@ -85,7 +87,7 @@ export async function updateUserAndGeneratePlans(userId: string, profile: UserPr
         };
         
         // 1. Update the user's core profile data.
-        await userRef.set(updatedProfileData, { merge: true });
+        await userRef.update(updatedProfileData);
         
         const aiInput = {
             age: profile.age,
