@@ -14,7 +14,7 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, setDoc } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { generatePlansForUser } from '@/app/actions/plans';
@@ -74,7 +74,8 @@ export default function ProfileContent() {
     
     try {
       const userDocRef = doc(firestore, 'users', user.uid);
-      await updateDoc(userDocRef, data);
+      // Use setDoc with merge to only update the specified fields
+      await setDoc(userDocRef, data, { merge: true });
       
       toast({ title: 'Профиль обновлен', description: 'Ваши данные сохранены. Начинаем генерацию новых планов...' });
       setIsEditing(false);

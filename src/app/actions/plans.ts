@@ -1,8 +1,9 @@
 'use server';
 
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, setDoc } from 'firebase/firestore';
 import { generateDietPlan } from '@/ai/flows/generate-diet-plan';
 import { generateWorkoutPlan } from '@/ai/flows/generate-workout-plan';
+import type { UserProfile } from '@/lib/definitions';
 import { firestore } from '@/firebase/server-app';
 
 type PlanGenerationInput = {
@@ -32,23 +33,29 @@ export async function generatePlansForUser(userId: string, input: PlanGeneration
     // Check the results of the promises.
     if (dietPlanResult.status === 'rejected') {
       console.error(`Diet plan generation failed for user ${userId}:`, dietPlanResult.reason);
-      throw new Error('Failed to generate diet plan.');
+      // Don't throw, just log. We can still try to save the other plan.
     }
     if (workoutPlanResult.status === 'rejected') {
       console.error(`Workout plan generation failed for user ${userId}:`, workoutPlanResult.reason);
-      throw new Error('Failed to generate workout plan.');
+       // Don't throw, just log.
     }
 
-    const dietPlan = dietPlanResult.value;
-    const workoutPlan = workoutPlanResult.value;
+    const dietPlan = dietPlanResult.status === 'fulfilled' ? dietPlanResult.value : null;
+    const workoutPlan = workoutPlanResult.status === 'fulfilled' ? workoutPlanResult.value : null;
+
+    if (!dietPlan && !workoutPlan) {
+        throw new Error('Both diet and workout plan generation failed.');
+    }
 
     const userDocRef = doc(firestore, 'users', userId);
 
+    const updateData: Partial<UserProfile> = {};
+    if (dietPlan) updateData.dietPlan = dietPlan;
+    if (workoutPlan) updateData.workoutPlan = workoutPlan;
+
+
     // Update the user's document with the generated plans.
-    await updateDoc(userDocRef, {
-      dietPlan: dietPlan,
-      workoutPlan: workoutPlan,
-    });
+    await setDoc(userDocRef, updateData, { merge: true });
 
     console.log(`Successfully generated and saved plans for user: ${userId}`);
     return { success: true };

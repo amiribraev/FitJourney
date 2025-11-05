@@ -10,7 +10,7 @@ function getServiceAccount() {
   }
   try {
     const serviceAccount = JSON.parse(serviceAccountJson);
-    // The private key needs to be correctly formatted.
+    // The private key needs to be correctly formatted for firebase-admin
     if (serviceAccount.private_key) {
       serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
     }
@@ -26,6 +26,7 @@ const SERVICE_ACCOUNT = getServiceAccount();
 
 const appName = 'firebase-admin-app-server-actions';
 
+// This pattern prevents reinitializing the app on every server action call
 if (!getApps().some((app) => app.name === appName)) {
   initializeApp(
     {
