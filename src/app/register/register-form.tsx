@@ -16,8 +16,6 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import type { UserProfile } from '@/lib/definitions';
 import { doc, setDoc } from 'firebase/firestore';
-import { generateDietPlan } from '@/ai/flows/generate-diet-plan';
-import { generateWorkoutPlan } from '@/ai/flows/generate-workout-plan';
 
 export function RegisterForm() {
   const router = useRouter();
@@ -49,7 +47,7 @@ export function RegisterForm() {
       // Update Firebase Auth profile with name
       await updateProfile(user, { displayName: data.name });
 
-      // 2. Create profile object to save to Firestore
+      // 2. Create profile object to save to Firestore, WITHOUT plans
       const userProfileData: Omit<UserProfile, 'dietPlan' | 'workoutPlan'> = {
         uid: user.uid,
         email: data.email,
@@ -67,44 +65,11 @@ export function RegisterForm() {
 
       toast({
         title: 'Регистрация завершена!',
-        description: 'Ваш профиль создан. Генерируем планы...',
+        description: 'Ваш профиль создан. Перенаправляем...',
       });
       
-      // 3. Redirect to profile immediately
+      // 3. Redirect to profile immediately. The profile page will handle plan generation.
       router.push('/profile');
-
-      // 4. Generate plans and update the document in the background
-      const [dietPlanResult, workoutPlanResult] = await Promise.allSettled([
-        generateDietPlan(data),
-        generateWorkoutPlan(data),
-      ]);
-
-      const updateData: Partial<UserProfile> = {};
-      if (dietPlanResult.status === 'fulfilled') {
-        updateData.dietPlan = dietPlanResult.value;
-      } else {
-        console.error("Diet plan generation failed:", dietPlanResult.reason);
-      }
-      if (workoutPlanResult.status === 'fulfilled') {
-        updateData.workoutPlan = workoutPlanResult.value;
-      } else {
-        console.error("Workout plan generation failed:", workoutPlanResult.reason);
-      }
-
-      if (Object.keys(updateData).length > 0) {
-        await setDoc(userRef, updateData, { merge: true });
-        // Optionally, show a success toast. This will appear after redirect.
-        toast({
-          title: 'Планы готовы!',
-          description: 'Ваши персональные планы сгенерированы.',
-        });
-      } else {
-        toast({
-          variant: 'destructive',
-          title: 'Ошибка генерации планов',
-          description: 'Не удалось создать планы питания и тренировок. Попробуйте обновить их в профиле.',
-        });
-      }
 
     } catch (error: any) {
       console.error('Registration error:', error);

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2, User, Weight, Ruler, Target, Edit, LogOut } from 'lucide-react';
@@ -37,6 +37,7 @@ export default function ProfileContent() {
 
   const [isEditing, setIsEditing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const form = useForm<ProfileUpdateData>({
     resolver: zodResolver(ProfileUpdateSchema),
@@ -48,6 +49,58 @@ export default function ProfileContent() {
   });
 
   const { reset } = form;
+
+  // Effect to handle initial plan generation
+  useEffect(() => {
+    if (profile && !profile.dietPlan && !profile.workoutPlan && !isGenerating) {
+      const generateInitialPlans = async () => {
+        setIsGenerating(true);
+        toast({ title: 'Начинаем генерацию ваших планов...', description: 'Это может занять до минуты.' });
+        try {
+          const aiInput = {
+            age: profile.age,
+            gender: profile.gender,
+            weight: profile.weight,
+            height: profile.height,
+            goal: profile.goal,
+          };
+          const [dietPlanResult, workoutPlanResult] = await Promise.allSettled([
+            generateDietPlan(aiInput),
+            generateWorkoutPlan(aiInput),
+          ]);
+    
+          const updateData: Partial<UserProfile> = {};
+          if (dietPlanResult.status === 'fulfilled') {
+            updateData.dietPlan = dietPlanResult.value;
+          } else {
+             console.error("Initial diet plan generation failed:", dietPlanResult.reason);
+          }
+    
+          if (workoutPlanResult.status === 'fulfilled') {
+            updateData.workoutPlan = workoutPlanResult.value;
+          } else {
+            console.error("Initial workout plan generation failed:", workoutPlanResult.reason);
+          }
+          
+          if (userProfileRef && Object.keys(updateData).length > 0) {
+            await setDoc(userProfileRef, updateData, { merge: true });
+            toast({ title: 'Планы готовы!', description: 'Ваши персональные планы сгенерированы.' });
+          } else if (dietPlanResult.status === 'rejected' || workoutPlanResult.status === 'rejected') {
+             toast({ variant: 'destructive', title: 'Ошибка генерации', description: 'Не удалось сгенерировать планы. Пожалуйста, обновите профиль.' });
+          }
+
+        } catch (e) {
+          console.error("Plan generation error", e);
+          toast({ variant: 'destructive', title: 'Ошибка генерации', description: 'Произошла непредвиденная ошибка.' });
+        } finally {
+          setIsGenerating(false);
+        }
+      };
+      generateInitialPlans();
+    }
+  }, [profile, userProfileRef, isGenerating, toast]);
+
+
   React.useEffect(() => {
     if (profile) {
       reset({
@@ -70,47 +123,48 @@ export default function ProfileContent() {
   }
   
   async function onSubmit(data: ProfileUpdateData) {
-    if (!user || !profile) return;
+    if (!user || !profile || !userProfileRef) return;
     setIsSubmitting(true);
     
     try {
-      const userDocRef = doc(firestore, 'users', user.uid);
-      await setDoc(userDocRef, data, { merge: true });
+      // 1. Update the user profile with new weight, height, goal
+      await setDoc(userProfileRef, data, { merge: true });
       
       toast({ title: 'Профиль обновлен', description: 'Ваши данные сохранены. Начинаем генерацию новых планов...' });
       setIsEditing(false);
 
-      // Regenerate plans on the client side
+      // 2. Regenerate plans in the background
       const aiInput = {
         ...profile, // spread existing profile data
         ...data,    // overwrite with new form data
       };
 
-      const [dietPlanResult, workoutPlanResult] = await Promise.allSettled([
+      // Not awaiting this so the UI is not blocked
+      Promise.allSettled([
         generateDietPlan(aiInput),
         generateWorkoutPlan(aiInput),
-      ]);
+      ]).then(async ([dietPlanResult, workoutPlanResult]) => {
+          const updateData: Partial<UserProfile> = {};
 
-      const updateData: Partial<UserProfile> = {};
+          if (dietPlanResult.status === 'fulfilled') {
+            updateData.dietPlan = dietPlanResult.value;
+          } else {
+            console.error("Diet plan regeneration failed:", dietPlanResult.reason);
+          }
 
-      if (dietPlanResult.status === 'fulfilled') {
-        updateData.dietPlan = dietPlanResult.value;
-      } else {
-        console.error("Diet plan generation failed:", dietPlanResult.reason);
-      }
+          if (workoutPlanResult.status === 'fulfilled') {
+            updateData.workoutPlan = workoutPlanResult.value;
+          } else {
+            console.error("Workout plan regeneration failed:", workoutPlanResult.reason);
+          }
 
-      if (workoutPlanResult.status === 'fulfilled') {
-        updateData.workoutPlan = workoutPlanResult.value;
-      } else {
-        console.error("Workout plan generation failed:", workoutPlanResult.reason);
-      }
-
-      if (Object.keys(updateData).length > 0) {
-        await setDoc(userDocRef, updateData, { merge: true });
-        toast({ title: 'Планы обновлены!', description: 'Новые планы питания и тренировок сгенерированы и сохранены.' });
-      } else {
-         toast({ variant: 'destructive', title: 'Ошибка генерации', description: 'Не удалось сгенерировать новые планы.' });
-      }
+          if (Object.keys(updateData).length > 0) {
+            await setDoc(userProfileRef, updateData, { merge: true });
+            toast({ title: 'Планы обновлены!', description: 'Новые планы питания и тренировок сгенерированы и сохранены.' });
+          } else {
+             toast({ variant: 'destructive', title: 'Ошибка генерации', description: 'Не удалось сгенерировать новые планы.' });
+          }
+      });
 
 
     } catch (error: any) {
@@ -158,8 +212,8 @@ export default function ProfileContent() {
             {!isEditing && <Button variant="outline" size="icon" onClick={() => setIsEditing(true)}><Edit className="h-4 w-4" /></Button>}
           </CardTitle>
           <CardDescription>
-            {plansExist ? 'Просмотр и редактирование ваших данных.' : 'Ваши планы генерируются. Это может занять до минуты.'}
-            </CardDescription>
+            {isGenerating ? 'Ваши планы генерируются. Это может занять до минуты...' : (plansExist ? 'Просмотр и редактирование ваших данных.' : 'Для вас будут сгенерированы планы...')}
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {!isEditing ? (
