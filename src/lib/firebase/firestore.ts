@@ -19,7 +19,6 @@ const db = getFirestore(app);
 
 export async function createUserProfile(uid: string, data: Omit<UserProfile, 'createdAt' | 'dietPlan' | 'workoutPlan'>) {
   const userRef = doc(db, 'users', uid);
-  // Use a server-side timestamp for reliability
   const profileData = {
     ...data,
     createdAt: new Date().toISOString(),
@@ -40,6 +39,5 @@ export async function getUserProfile(uid:string): Promise<UserProfile | null> {
 
 export async function updateUserProfile(uid: string, data: Partial<UserProfile>) {
     const userRef = doc(db, 'users', uid);
-    // When updating, we don't need to worry about the creation timestamp.
     return await updateDoc(userRef, data);
 }

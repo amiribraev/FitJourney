@@ -19,8 +19,7 @@ export async function completeRegistration(userId: string, data: RegistrationDat
   const { name, email, age, gender, weight, height, goal } = validationResult.data;
 
   try {
-    // Step 1: Create the initial user profile WITHOUT the plans
-    // The plans will be generated and added in a second step.
+    // Step 1: Create the initial user profile WITHOUT the plans.
     const userProfileData: Omit<UserProfile, 'createdAt' | 'dietPlan' | 'workoutPlan'> = {
       uid: userId,
       email,
@@ -34,9 +33,8 @@ export async function completeRegistration(userId: string, data: RegistrationDat
     
     await createUserProfile(userId, userProfileData);
     
-    // Step 2: Asynchronously generate plans and update the profile.
+    // Step 2: Asynchronously generate plans.
     // We don't await this here so the registration can complete faster.
-    // The user will see a loading state on the plan pages until this is done.
     generateAndSavePlans(userId, { age, gender, weight, height, goal }).then(() => {
         // Revalidate paths after plans are saved
         revalidatePath('/profile');
@@ -70,7 +68,6 @@ async function generateAndSavePlans(userId: string, aiInput: { age: number, gend
         console.log(`Планы для пользователя ${userId} успешно созданы и сохранены.`);
     } catch (error) {
         console.error(`Ошибка при генерации планов для пользователя ${userId}:`, error);
-        // Optionally, update the user profile with an error state
     }
 }
 
