@@ -20,8 +20,18 @@ const GenerateWorkoutPlanInputSchema = z.object({
 });
 export type GenerateWorkoutPlanInput = z.infer<typeof GenerateWorkoutPlanInputSchema>;
 
+const DailyWorkoutPlanSchema = z.array(z.string()).describe("Array of exercises for a single day. If it's a rest day, it should be an empty array or contain 'Rest'.");
+
 const GenerateWorkoutPlanOutputSchema = z.object({
-  weeklyWorkoutPlan: z.record(z.string(), z.array(z.string())).describe('A weekly workout plan, with days of the week as keys and an array of exercises as values.'),
+  weeklyWorkoutPlan: z.object({
+    Monday: DailyWorkoutPlanSchema.describe("Workout plan for Monday."),
+    Tuesday: DailyWorkoutPlanSchema.describe("Workout plan for Tuesday."),
+    Wednesday: DailyWorkoutPlanSchema.describe("Workout plan for Wednesday."),
+    Thursday: DailyWorkoutPlanSchema.describe("Workout plan for Thursday."),
+    Friday: DailyWorkoutPlanSchema.describe("Workout plan for Friday."),
+    Saturday: DailyWorkoutPlanSchema.describe("Workout plan for Saturday."),
+    Sunday: DailyWorkoutPlanSchema.describe("Workout plan for Sunday."),
+  }).describe('A weekly workout plan with daily exercises for all 7 days of the week.'),
 });
 export type GenerateWorkoutPlanOutput = z.infer<typeof GenerateWorkoutPlanOutputSchema>;
 
@@ -43,21 +53,24 @@ const prompt = ai.definePrompt({
   Goal: {{{goal}}}
 
   Create a weekly workout plan that is tailored to the user's goal. The workout plan should include the day of the week and a list of exercises for that day.
+  Ensure you provide a full 7-day plan. If a day is a rest day, the array for that day should be empty or contain a single string like "Rest".
 
-  The workout plan should be structured as a JSON object where each day of the week (Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday) is a key, and the value is an array of exercises for that day.
+  The workout plan should be structured as a JSON object where the 'weeklyWorkoutPlan' key contains an object. This inner object should have each day of the week (Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday) as a key, and the value is an array of exercises for that day.
 
   For weight loss, focus on cardio and full body workouts with moderate weight.
   For muscle gain, focus on compound exercises with heavy weight and lower reps.
 
   Example:
   {
-    "Monday": ["30 minutes of jogging", "Full body circuit training"],
-    "Tuesday": ["Rest"],
-    "Wednesday": ["30 minutes of swimming", "Strength training"],
-    "Thursday": ["Rest"],
-    "Friday": ["30 minutes of cycling", "Full body circuit training"],
-    "Saturday": ["Rest"],
-    "Sunday": ["Yoga"]
+    "weeklyWorkoutPlan": {
+      "Monday": ["30 minutes of jogging", "Full body circuit training"],
+      "Tuesday": ["Rest"],
+      "Wednesday": ["30 minutes of swimming", "Strength training"],
+      "Thursday": ["Rest"],
+      "Friday": ["30 minutes of cycling", "Full body circuit training"],
+      "Saturday": ["Rest"],
+      "Sunday": ["Yoga"]
+    }
   }
   `,
 });
