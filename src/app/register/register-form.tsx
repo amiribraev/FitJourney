@@ -16,6 +16,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import type { UserProfile } from '@/lib/definitions';
 import { doc, setDoc } from 'firebase/firestore';
+import { generateDietPlan } from '@/ai/flows/generate-diet-plan';
+import { generateWorkoutPlan } from '@/ai/flows/generate-workout-plan';
 
 export function RegisterForm() {
   const router = useRouter();
@@ -72,10 +74,15 @@ export function RegisterForm() {
       router.push('/profile');
 
     } catch (error: any) {
-      console.error('Registration error:', error);
       const errorMessage = error.code === 'auth/email-already-in-use'
-        ? 'Этот email уже используется.'
-        : `Произошла ошибка при регистрации: ${error.message}`;
+        ? 'Этот email уже используется. Пожалуйста, войдите или используйте другой адрес.'
+        : `Произошла ошибка при регистрации.`;
+      
+      // We don't need to log this as an error to the console, it's expected user behavior
+      if (error.code !== 'auth/email-already-in-use') {
+        console.error('Registration error:', error);
+      }
+
       toast({
         variant: 'destructive',
         title: 'Ошибка регистрации',
