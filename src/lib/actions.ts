@@ -11,6 +11,7 @@ export async function completeRegistration(userId: string, data: unknown) {
   const validationResult = RegistrationSchema.safeParse(data);
 
   if (!validationResult.success) {
+    console.error('Registration validation failed:', validationResult.error);
     return { success: false, error: 'Invalid data provided.' };
   }
 
@@ -37,7 +38,8 @@ export async function completeRegistration(userId: string, data: unknown) {
       dietPlan: dietPlanResult,
       workoutPlan: workoutPlanResult,
     };
-
+    
+    // Correctly pass the full userProfileData object
     await createUserProfile(userId, userProfileData);
 
     revalidatePath('/profile');
