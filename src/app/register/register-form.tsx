@@ -16,7 +16,6 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { doc, setDoc } from 'firebase/firestore';
 import { UserProfile } from '@/lib/definitions';
-import { setDocumentNonBlocking } from '@/firebase';
 
 
 export function RegisterForm() {
@@ -35,6 +34,7 @@ export function RegisterForm() {
       age: '' as any,
       weight: '' as any,
       height: '' as any,
+      goal: 'weight loss',
     },
   });
 
@@ -61,11 +61,11 @@ export function RegisterForm() {
         createdAt: new Date().toISOString(),
       };
 
-      // 3. Save profile to Firestore from the client
+      // 3. Save profile to Firestore from the client with the correct user.uid
       const userDocRef = doc(firestore, 'users', user.uid);
       await setDoc(userDocRef, userProfileData);
 
-      // We don't await the plan generation, but we trigger it from the client after profile creation
+      // Trigger plan generation in the background (non-blocking)
       fetch('/api/generate-plans', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -79,7 +79,8 @@ export function RegisterForm() {
 
       // 4. Redirect to profile
       router.push('/profile');
-    } catch (error: any) {
+    } catch (error: any)
+      {
       console.error('Registration error:', error);
       const errorMessage = error.code === 'auth/email-already-in-use'
         ? 'Этот email уже используется.'
