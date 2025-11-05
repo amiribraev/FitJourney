@@ -7,7 +7,7 @@ import { Loader2, Dumbbell, HeartPulse, Bike, Zap } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { doc } from 'firebase/firestore';
-
+import { Skeleton } from '@/components/ui/skeleton';
 
 const exerciseIcons: Record<string, JSX.Element> = {
   jogging: <HeartPulse className="h-5 w-5 text-red-500" />,
@@ -45,11 +45,6 @@ export default function WorkoutPlanContent() {
   const loading = isUserLoading || isProfileLoading;
 
   const weeklyPlan = profile?.workoutPlan?.weeklyWorkoutPlan;
-  const sortedDays = useMemo(() => {
-    if (!weeklyPlan) return [];
-    return Object.keys(weeklyPlan).sort((a, b) => dayOrder.indexOf(a) - dayOrder.indexOf(b));
-  }, [weeklyPlan]);
-
 
   if (loading) {
     return (
@@ -58,7 +53,6 @@ export default function WorkoutPlanContent() {
       </div>
     );
   }
-
 
   return (
     <div className="container py-8 px-4 md:px-6">
@@ -73,36 +67,41 @@ export default function WorkoutPlanContent() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {weeklyPlan && sortedDays.length > 0 ? (
-            <Accordion type="single" collapsible className="w-full" defaultValue="item-0">
-              {sortedDays.map((day, index) => (
-                <AccordionItem value={`item-${index}`} key={day}>
-                  <AccordionTrigger className="text-lg font-semibold hover:no-underline capitalize">
-                    {day}
-                  </AccordionTrigger>
-                  <AccordionContent>
-                    <ul className="space-y-4 pt-2">
-                      {weeklyPlan[day].length > 0 ? weeklyPlan[day].map((exercise, exIndex) => (
+          <Accordion type="single" collapsible className="w-full" defaultValue="item-0">
+            {dayOrder.map((day, index) => (
+              <AccordionItem value={`item-${index}`} key={day}>
+                <AccordionTrigger className="text-lg font-semibold hover:no-underline capitalize">
+                  {day}
+                </AccordionTrigger>
+                <AccordionContent>
+                  <ul className="space-y-4 pt-2">
+                    {weeklyPlan && weeklyPlan[day] && weeklyPlan[day].length > 0 ? (
+                      weeklyPlan[day].map((exercise, exIndex) => (
                         <li key={exIndex} className="flex items-center gap-4 p-4 rounded-lg bg-background">
                           {getExerciseIcon(exercise)}
                           <p className="font-medium">{exercise}</p>
                         </li>
-                      )) : (
-                        <li className="flex items-center gap-4 p-4 rounded-lg bg-background">
+                      ))
+                    ) : weeklyPlan && weeklyPlan[day] && weeklyPlan[day].length === 0 ? (
+                       <li className="flex items-center gap-4 p-4 rounded-lg bg-background">
                             <p className="font-medium text-muted-foreground">День отдыха</p>
                         </li>
-                      )}
-                    </ul>
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
-          ) : (
-            <div className="text-center text-muted-foreground py-8">
-                <p>План тренировок еще не создан.</p>
-                <p className="text-sm">Пожалуйста, заполните свой профиль или подождите, пока AI сгенерирует ваш план.</p>
-            </div>
-          )}
+                    ) : (
+                      // Skeleton loader for exercises
+                      [...Array(2)].map((_, i) => (
+                         <li key={i} className="flex items-center gap-4 p-4 rounded-lg bg-background">
+                          <Skeleton className="h-6 w-6 rounded-full" />
+                          <div className="flex-1 space-y-2">
+                            <Skeleton className="h-4 w-3/4" />
+                          </div>
+                        </li>
+                      ))
+                    )}
+                  </ul>
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
         </CardContent>
       </Card>
     </div>

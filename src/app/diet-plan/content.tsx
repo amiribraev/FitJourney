@@ -7,6 +7,7 @@ import { Loader2, UtensilsCrossed, Salad, Fish, Soup, Utensils } from 'lucide-re
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { doc } from 'firebase/firestore';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const mealIcons: Record<string, JSX.Element> = {
   salad: <Salad className="h-5 w-5 text-green-500" />,
@@ -42,12 +43,6 @@ export default function DietPlanContent() {
   const loading = isUserLoading || isProfileLoading;
 
   const weeklyPlan = profile?.dietPlan?.weeklyDietPlan;
-  
-  const sortedDays = useMemo(() => {
-    if (!weeklyPlan) return [];
-    return Object.keys(weeklyPlan).sort((a, b) => dayOrder.indexOf(a) - dayOrder.indexOf(b));
-  }, [weeklyPlan]);
-
 
   if (loading) {
     return (
@@ -70,16 +65,16 @@ export default function DietPlanContent() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {weeklyPlan && sortedDays.length > 0 ? (
-            <Accordion type="single" collapsible className="w-full" defaultValue="item-0">
-              {sortedDays.map((day, index) => (
-                <AccordionItem value={`item-${index}`} key={day}>
-                  <AccordionTrigger className="text-lg font-semibold hover:no-underline capitalize">
-                    {day}
-                  </AccordionTrigger>
-                  <AccordionContent>
-                    <ul className="space-y-4 pt-2">
-                      {weeklyPlan[day].map((meal, mealIndex) => (
+          <Accordion type="single" collapsible className="w-full" defaultValue="item-0">
+            {dayOrder.map((day, index) => (
+              <AccordionItem value={`item-${index}`} key={day}>
+                <AccordionTrigger className="text-lg font-semibold hover:no-underline capitalize">
+                  {day}
+                </AccordionTrigger>
+                <AccordionContent>
+                  <ul className="space-y-4 pt-2">
+                    {weeklyPlan && weeklyPlan[day] ? (
+                      weeklyPlan[day].map((meal, mealIndex) => (
                         <li key={mealIndex} className="flex items-start gap-4 p-4 rounded-lg bg-background">
                           <div>{getMealIcon(meal.meal)}</div>
                           <div className="flex-1">
@@ -87,18 +82,24 @@ export default function DietPlanContent() {
                             <p className="text-sm text-muted-foreground">{meal.calories} калорий</p>
                           </div>
                         </li>
-                      ))}
-                    </ul>
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
-          ) : (
-             <div className="text-center text-muted-foreground py-8">
-                <p>План питания еще не создан.</p>
-                <p className="text-sm">Пожалуйста, заполните свой профиль или подождите, пока AI сгенерирует ваш план.</p>
-            </div>
-          )}
+                      ))
+                    ) : (
+                      // Skeleton loader for meals
+                      [...Array(3)].map((_, i) => (
+                        <li key={i} className="flex items-start gap-4 p-4 rounded-lg bg-background">
+                          <Skeleton className="h-6 w-6 rounded-full" />
+                          <div className="flex-1 space-y-2">
+                            <Skeleton className="h-4 w-3/4" />
+                            <Skeleton className="h-4 w-1/2" />
+                          </div>
+                        </li>
+                      ))
+                    )}
+                  </ul>
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
         </CardContent>
       </Card>
     </div>
