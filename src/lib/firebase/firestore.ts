@@ -1,6 +1,6 @@
-
-import { doc, setDoc, getDoc, serverTimestamp, updateDoc, getFirestore } from 'firebase/firestore';
+import { doc, setDoc, getDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { initializeApp, getApps, getApp } from 'firebase/app';
+import { getFirestore } from 'firebase/firestore';
 import type { UserProfile } from '../definitions';
 import { firebaseConfig } from '@/firebase/config';
 
@@ -22,7 +22,7 @@ export async function createUserProfile(uid: string, data: Omit<UserProfile, 'cr
   const app = initializeFirebaseAdmin();
   const db = getFirestore(app);
   const userRef = doc(db, 'users', uid);
-  // Pass the entire data object to be saved.
+  // Pass the entire data object to be saved, with the addition of the timestamp.
   return await setDoc(userRef, {
     ...data,
     createdAt: serverTimestamp(),
