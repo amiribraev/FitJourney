@@ -1,5 +1,6 @@
 
-import { doc, setDoc, getDoc, serverTimestamp, updateDoc, getFirestore, initializeApp, getApps, getApp } from 'firebase/firestore';
+import { doc, setDoc, getDoc, serverTimestamp, updateDoc, getFirestore } from 'firebase/firestore';
+import { initializeApp, getApps, getApp } from 'firebase/app';
 import type { UserProfile } from '../definitions';
 import { firebaseConfig } from '@/firebase/config';
 
