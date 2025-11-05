@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { useUser, useDoc } from '@/firebase';
+import { useUser, useDoc, useMemoFirebase } from '@/firebase';
 import type { UserProfile } from '@/lib/definitions';
 import { Loader2, UtensilsCrossed, Salad, Fish, Soup } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -29,8 +29,8 @@ export default function DietPlanContent() {
   const { user, isUserLoading } = useUser();
   const firestore = getFirestore();
 
-  const userProfileRef = useMemo(() => {
-    if (!user) return undefined;
+  const userProfileRef = useMemoFirebase(() => {
+    if (!user) return null;
     return doc(firestore, 'users', user.uid);
   }, [user, firestore]);
 

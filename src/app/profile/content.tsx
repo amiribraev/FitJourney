@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2, User, Weight, Ruler, Target, Edit } from 'lucide-react';
-import { useUser, useAuth as useFirebaseAuth, useDoc } from '@/firebase';
+import { useUser, useAuth as useFirebaseAuth, useDoc, useMemoFirebase } from '@/firebase';
 import type { UserProfile } from '@/lib/definitions';
 import { ProfileUpdateSchema, type ProfileUpdateData } from '@/lib/schema';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,8 +24,8 @@ export default function ProfileContent() {
   const firestore = getFirestore();
   const { toast } = useToast();
   
-  const userProfileRef = useMemo(() => {
-    if (!user) return undefined;
+  const userProfileRef = useMemoFirebase(() => {
+    if (!user) return null;
     return doc(firestore, 'users', user.uid);
   }, [user, firestore]);
 
