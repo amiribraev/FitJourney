@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2, User, Weight, Ruler, Target, Edit } from 'lucide-react';
-import { useUser, useAuth as useFirebaseAuth, useDoc, useMemoFirebase } from '@/firebase';
+import { useUser, useAuth as useFirebaseAuth, useDoc, useMemoFirebase, useFirestore } from '@/firebase';
 import type { UserProfile } from '@/lib/definitions';
 import { ProfileUpdateSchema, type ProfileUpdateData } from '@/lib/schema';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,13 +15,14 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { updateUserAndGeneratePlans } from '@/lib/actions';
-import { doc, getFirestore } from 'firebase/firestore';
+import { doc } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
+import React from 'react';
 
 export default function ProfileContent() {
   const { user, isUserLoading } = useUser();
   const auth = useFirebaseAuth();
-  const firestore = useMemo(() => getFirestore(), []);
+  const firestore = useFirestore();
   const { toast } = useToast();
   
   const userProfileRef = useMemoFirebase(() => {
@@ -68,11 +69,11 @@ export default function ProfileContent() {
   }
   
   async function onSubmit(data: ProfileUpdateData) {
-    if (!user) return;
+    if (!user || !profile) return;
     setIsSubmitting(true);
     toast({ title: 'Профиль обновляется...', description: 'Генерируем ваши новые планы. Это может занять минуту.' });
     try {
-      const result = await updateUserAndGeneratePlans(user.uid, data);
+      const result = await updateUserAndGeneratePlans(user.uid, profile, data);
       if (result.success) {
         toast({ title: 'Профиль обновлен', description: 'Ваши новые планы тренировок и питания сгенерированы.' });
         setIsEditing(false);
@@ -141,14 +142,14 @@ export default function ProfileContent() {
                 <FormField control={form.control} name="weight" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Вес (в кг)</FormLabel>
-                    <FormControl><Input type="number" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} /></FormControl>
+                    <FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />
                 <FormField control={form.control} name="height" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Рост (в см)</FormLabel>
-                    <FormControl><Input type="number" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} /></FormControl>
+                    <FormControl><Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />

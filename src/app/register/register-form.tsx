@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { useAuth } from '@/firebase';
+import { useAuth, useFirestore } from '@/firebase';
 import { RegistrationSchema, type RegistrationData } from '@/lib/schema';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,11 +14,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
-import { completeRegistration } from '@/lib/actions';
+import { doc, setDoc } from 'firebase/firestore';
+import { UserProfile } from '@/lib/definitions';
+import { setDocumentNonBlocking } from '@/firebase';
+
 
 export function RegisterForm() {
   const router = useRouter();
   const auth = useAuth();
+  const firestore = useFirestore();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -44,31 +48,42 @@ export function RegisterForm() {
       // Update Firebase Auth profile with name
       await updateProfile(user, { displayName: data.name });
 
-      // Show intermediate toast
-      toast({
-        title: 'Аккаунт создан',
-        description: 'Генерируем ваши персональные планы... Это может занять минуту.',
+      // 2. Create profile object
+      const userProfileData: Omit<UserProfile, 'dietPlan' | 'workoutPlan'> = {
+        uid: user.uid,
+        email: data.email,
+        name: data.name,
+        age: data.age,
+        gender: data.gender,
+        weight: data.weight,
+        height: data.height,
+        goal: data.goal,
+        createdAt: new Date().toISOString(),
+      };
+
+      // 3. Save profile to Firestore from the client
+      const userDocRef = doc(firestore, 'users', user.uid);
+      await setDoc(userDocRef, userProfileData);
+
+      // We don't await the plan generation, but we trigger it from the client after profile creation
+      fetch('/api/generate-plans', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.uid, userProfile: userProfileData }),
       });
-
-      // 2. Call server action to create profile in Firestore and generate plans
-      const result = await completeRegistration(user.uid, data);
-
-      if (!result.success) {
-        throw new Error(result.error || 'Не удалось завершить регистрацию.');
-      }
 
       toast({
         title: 'Регистрация завершена!',
-        description: 'Ваши планы готовы. Добро пожаловать в FitJourney!',
+        description: 'Ваш профиль создан. Планы генерируются...',
       });
 
-      // 3. Redirect to profile
+      // 4. Redirect to profile
       router.push('/profile');
     } catch (error: any) {
       console.error('Registration error:', error);
       const errorMessage = error.code === 'auth/email-already-in-use'
         ? 'Этот email уже используется.'
-        : 'Произошла ошибка при регистрации.';
+        : `Произошла ошибка при регистрации: ${error.message}`;
       toast({
         variant: 'destructive',
         title: 'Ошибка регистрации',
@@ -92,7 +107,7 @@ export function RegisterForm() {
           <FormItem className="md:col-span-2"><FormLabel>Пароль</FormLabel><FormControl><Input type="password" placeholder="••••••••" {...field} /></FormControl><FormMessage /></FormItem>
         )} />
         <FormField control={form.control} name="age" render={({ field }) => (
-          <FormItem><FormLabel>Возраст</FormLabel><FormControl><Input type="number" placeholder="25" {...field} /></FormControl><FormMessage /></FormItem>
+          <FormItem><FormLabel>Возраст</FormLabel><FormControl><Input type="number" placeholder="25" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)}/></FormControl><FormMessage /></FormItem>
         )} />
         <FormField control={form.control} name="gender" render={({ field }) => (
           <FormItem><FormLabel>Пол</FormLabel>
@@ -103,10 +118,10 @@ export function RegisterForm() {
           </FormItem>
         )} />
         <FormField control={form.control} name="weight" render={({ field }) => (
-          <FormItem><FormLabel>Вес (в кг)</FormLabel><FormControl><Input type="number" placeholder="70" {...field} /></FormControl><FormMessage /></FormItem>
+          <FormItem><FormLabel>Вес (в кг)</FormLabel><FormControl><Input type="number" placeholder="70" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)}/></FormControl><FormMessage /></FormItem>
         )} />
         <FormField control={form.control} name="height" render={({ field }) => (
-          <FormItem><FormLabel>Рост (в см)</FormLabel><FormControl><Input type="number" placeholder="175" {...field} /></FormControl><FormMessage /></FormItem>
+          <FormItem><FormLabel>Рост (в см)</FormLabel><FormControl><Input type="number" placeholder="175" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)}/></FormControl><FormMessage /></FormItem>
         )} />
         <FormField control={form.control} name="goal" render={({ field }) => (
           <FormItem className="md:col-span-2 space-y-3">
