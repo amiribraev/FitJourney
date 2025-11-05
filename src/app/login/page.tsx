@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { LoginForm } from './login-form';
 import { Logo } from '@/components/logo';
+import { Button } from '@/components/ui/button';
 
 export const metadata = {
   title: 'Войти | FitJourney',
