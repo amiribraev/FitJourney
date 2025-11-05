@@ -27,9 +27,9 @@ export function RegisterForm() {
       name: '',
       email: '',
       password: '',
-      age: undefined,
-      weight: undefined,
-      height: undefined,
+      age: '' as any,
+      weight: '' as any,
+      height: '' as any,
     },
   });
 
