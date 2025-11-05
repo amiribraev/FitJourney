@@ -17,7 +17,8 @@ import { useToast } from '@/hooks/use-toast';
 import { doc, setDoc } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
-import { generatePlansForUser } from '@/app/actions/plans';
+import { generateDietPlan } from '@/ai/flows/generate-diet-plan';
+import { generateWorkoutPlan } from '@/ai/flows/generate-workout-plan';
 
 
 export default function ProfileContent() {
@@ -74,17 +75,43 @@ export default function ProfileContent() {
     
     try {
       const userDocRef = doc(firestore, 'users', user.uid);
-      // Use setDoc with merge to only update the specified fields
       await setDoc(userDocRef, data, { merge: true });
       
       toast({ title: 'Профиль обновлен', description: 'Ваши данные сохранены. Начинаем генерацию новых планов...' });
       setIsEditing(false);
 
-      // Fire-and-forget plan generation
-      generatePlansForUser(user.uid, {
+      // Regenerate plans on the client side
+      const aiInput = {
         ...profile, // spread existing profile data
         ...data,    // overwrite with new form data
-      });
+      };
+
+      const [dietPlanResult, workoutPlanResult] = await Promise.allSettled([
+        generateDietPlan(aiInput),
+        generateWorkoutPlan(aiInput),
+      ]);
+
+      const updateData: Partial<UserProfile> = {};
+
+      if (dietPlanResult.status === 'fulfilled') {
+        updateData.dietPlan = dietPlanResult.value;
+      } else {
+        console.error("Diet plan generation failed:", dietPlanResult.reason);
+      }
+
+      if (workoutPlanResult.status === 'fulfilled') {
+        updateData.workoutPlan = workoutPlanResult.value;
+      } else {
+        console.error("Workout plan generation failed:", workoutPlanResult.reason);
+      }
+
+      if (Object.keys(updateData).length > 0) {
+        await setDoc(userDocRef, updateData, { merge: true });
+        toast({ title: 'Планы обновлены!', description: 'Новые планы питания и тренировок сгенерированы и сохранены.' });
+      } else {
+         toast({ variant: 'destructive', title: 'Ошибка генерации', description: 'Не удалось сгенерировать новые планы.' });
+      }
+
 
     } catch (error: any) {
       toast({ variant: 'destructive', title: 'Ошибка обновления', description: error.message });
