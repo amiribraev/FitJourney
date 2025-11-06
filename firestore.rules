@@ -1,0 +1,102 @@
+/**
+ * @fileoverview Firestore Security Rules for FitJourney application.
+ *
+ * Core Philosophy:
+ * This ruleset enforces a strict user-ownership model for all data. Each user has complete control over their profile, diet plans, workout plans, and progress logs.
+ *
+ * Data Structure:
+ * All user-related data is nested under /users/{userId}, where {userId} corresponds to the Firebase Authentication UID. Diet plans, workout plans, and progress logs are stored as subcollections within each user's document.
+ *
+ * Key Security Decisions:
+ * - User data is private and only accessible to the authenticated user.
+ * - Users can only create, read, update, and delete their own data.
+ * - List operations are allowed only for the owner of the data.
+ * - No global admin roles are defined, simplifying the access control.
+ *
+ * Denormalization for Authorization:
+ * The data model enforces that `userId` in the document data must match the `userId` in the path. This allows for simple, path-based security rules without needing to read the document's contents.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Protects the root of the database, preventing any unauthorized access.
+     */
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    /**
+     * @description Manages user profile data, ensuring only the authenticated user can access their own profile.
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isSignedIn() && isSelfCreation(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Manages diet plans for a specific user, ensuring only the owner can access them.
+     */
+    match /users/{userId}/dietPlans/{dietPlanId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isSignedIn() && request.resource.data.userId == userId && request.resource.data.id == dietPlanId;
+      allow update: if isExistingOwner(userId) && resource.data.userId == userId;
+      allow delete: if isExistingOwner(userId) && resource.data.userId == userId;
+    }
+
+    /**
+     * @description Manages workout plans for a specific user, ensuring only the owner can access them.
+     */
+    match /users/{userId}/workoutPlans/{workoutPlanId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isSignedIn() && request.resource.data.userId == userId && request.resource.data.id == workoutPlanId;
+      allow update: if isExistingOwner(userId) && resource.data.userId == userId;
+      allow delete: if isExistingOwner(userId) && resource.data.userId == userId;
+    }
+
+    /**
+     * @description Manages daily progress logs for a specific user.
+     */
+    match /users/{userId}/progressLogs/{logId} {
+      allow get, list: if isOwner(userId);
+      // Allow create/update if the user is the owner and the logId matches the date in the data.
+      allow write: if isOwner(userId) && request.resource.data.userId == userId && request.resource.data.id == logId;
+    }
+
+    // --- Helper functions ---
+
+    /**
+     * @description Checks if the user is signed in.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * @description Checks if the authenticated user is the owner of the resource.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * @description Checks if the authenticated user is creating their own user document.
+     */
+    function isSelfCreation(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * @description Checks if the authenticated user is the owner of an existing resource.
+     */
+    function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+    }
+  }
+}

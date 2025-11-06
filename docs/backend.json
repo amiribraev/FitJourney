@@ -1,0 +1,257 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user in the FitJourney application.",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Unique identifier for the user (matches Firebase Auth UID)."
+        },
+        "email": {
+          "type": "string",
+          "description": "User's email address.",
+          "format": "email"
+        },
+        "name": {
+          "type": "string",
+          "description": "User's full name."
+        },
+        "age": {
+          "type": "number",
+          "description": "User's age in years."
+        },
+        "gender": {
+          "type": "string",
+          "description": "User's gender."
+        },
+        "weight": {
+          "type": "number",
+          "description": "User's weight in kilograms."
+        },
+        "height": {
+          "type": "number",
+          "description": "User's height in centimeters."
+        },
+        "goal": {
+          "type": "string",
+          "description": "User's fitness goal (weight loss or muscle gain)."
+        }
+      },
+      "required": [
+        "uid",
+        "email",
+        "name",
+        "age",
+        "gender",
+        "weight",
+        "height",
+        "goal"
+      ]
+    },
+    "DietPlan": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "DietPlan",
+      "type": "object",
+      "description": "Represents a weekly diet plan for a user.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the diet plan."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N DietPlan)"
+        },
+        "startDate": {
+          "type": "string",
+          "description": "Start date of the diet plan.",
+          "format": "date-time"
+        },
+        "endDate": {
+          "type": "string",
+          "description": "End date of the diet plan.",
+          "format": "date-time"
+        },
+        "dailyMeals": {
+          "type": "array",
+          "description": "Array of daily meal plans.",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "startDate",
+        "endDate",
+        "dailyMeals"
+      ]
+    },
+    "WorkoutPlan": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "WorkoutPlan",
+      "type": "object",
+      "description": "Represents a weekly workout plan for a user.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the workout plan."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N WorkoutPlan)"
+        },
+        "startDate": {
+          "type": "string",
+          "description": "Start date of the workout plan.",
+          "format": "date-time"
+        },
+        "endDate": {
+          "type": "string",
+          "description": "End date of the workout plan.",
+          "format": "date-time"
+        },
+        "dailyExercises": {
+          "type": "array",
+          "description": "Array of daily exercise routines.",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "startDate",
+        "endDate",
+        "dailyExercises"
+      ]
+    },
+    "ProgressLog": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ProgressLog",
+      "type": "object",
+      "description": "Represents a single day's progress log for a user.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the progress log, typically the date in YYYY-MM-DD format."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N ProgressLog)"
+        },
+        "date": {
+          "type": "string",
+          "description": "The date of the log entry.",
+          "format": "date"
+        },
+        "caloriesConsumed": {
+          "type": "number",
+          "description": "Total calories consumed on this day."
+        },
+        "workoutCompleted": {
+          "type": "boolean",
+          "description": "Whether the user completed their workout for the day."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "date",
+        "caloriesConsumed"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profile data. The `userId` parameter corresponds to the Firebase Authentication UID. DietPlans and WorkoutPlans are nested under this document. The uid must match the document id.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The Firebase Authentication UID of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/dietPlans/{dietPlanId}",
+        "definition": {
+          "entityName": "DietPlan",
+          "schema": {
+            "$ref": "#/backend/entities/DietPlan"
+          },
+          "description": "Stores diet plans associated with a specific user.  The `userId` parameter corresponds to the Firebase Authentication UID, enforcing ownership. The dietPlanId corresponds to the id property in the DietPlan object.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The Firebase Authentication UID of the user."
+            },
+            {
+              "name": "dietPlanId",
+              "description": "The unique identifier of the diet plan."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/workoutPlans/{workoutPlanId}",
+        "definition": {
+          "entityName": "WorkoutPlan",
+          "schema": {
+            "$ref": "#/backend/entities/WorkoutPlan"
+          },
+          "description": "Stores workout plans associated with a specific user. The `userId` parameter corresponds to the Firebase Authentication UID, enforcing ownership. The workoutPlanId corresponds to the id property in the WorkoutPlan object.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The Firebase Authentication UID of the user."
+            },
+            {
+              "name": "workoutPlanId",
+              "description": "The unique identifier of the workout plan."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/progressLogs/{logId}",
+        "definition": {
+          "entityName": "ProgressLog",
+          "schema": {
+            "$ref": "#/backend/entities/ProgressLog"
+          },
+          "description": "Stores daily progress logs for a user. The `userId` parameter corresponds to the Firebase Authentication UID, enforcing ownership. The logId should be the date in YYYY-MM-DD format.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The Firebase Authentication UID of the user."
+            },
+            {
+              "name": "logId",
+              "description": "The unique identifier for the log, formatted as YYYY-MM-DD."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to address the application requirements for user profiles, diet plans, workout plans, and progress tracking while adhering to the principles of Authorization Independence, Structural Segregation, Access Modeling, and Data Clarity. The core structure revolves around user-owned data nested under `/users/{userId}`. This ensures that all related data is directly associated with its respective user. Authorization independence is achieved by using path-based ownership. Since each subcollection is under the `users/{userId}` collection, security rules can simply check if the `request.auth.uid` matches the `{userId}`. This design avoids the need for `get()` calls in the security rules to check ownership, making them simpler and more robust. Segregation is achieved by keeping user profiles, diet plans, workout plans, and progress logs in separate collections."
+  }
+}

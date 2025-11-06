@@ -1,0 +1,27 @@
+{
+  "node": {
+    "409559f2aba5dfc78bf8e6d0d058093f07dbce6d51": {
+      "workers": {
+        "app/profile/page": {
+          "moduleId": "[project]/.next-internal/server/app/profile/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/ai/flows/generate-diet-plan.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/src/ai/flows/generate-workout-plan.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/profile/page": "action-browser"
+      }
+    },
+    "40cdfd1fc10d110ae27e9f7ec88208f447d951591d": {
+      "workers": {
+        "app/profile/page": {
+          "moduleId": "[project]/.next-internal/server/app/profile/page/actions.js { ACTIONS_MODULE0 => \"[project]/src/ai/flows/generate-diet-plan.ts [app-rsc] (ecmascript)\", ACTIONS_MODULE1 => \"[project]/src/ai/flows/generate-workout-plan.ts [app-rsc] (ecmascript)\" } [app-rsc] (server actions loader, ecmascript)",
+          "async": false
+        }
+      },
+      "layer": {
+        "app/profile/page": "action-browser"
+      }
+    }
+  },
+  "edge": {}
+}
