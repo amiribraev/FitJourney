@@ -4,14 +4,14 @@ import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
-// Assemble the Firebase config object from environment variables
+// Конфигурация Firebase перенесена напрямую в код, чтобы проект работал сразу после скачивания.
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  apiKey: "AIzaSyDUXLcXYk5uC6h4PNsn_4HueNrhUTvHE0g",
+  authDomain: "studio-8195792708-ea343.firebaseapp.com",
+  projectId: "studio-8195792708-ea343",
+  storageBucket: "studio-8195792708-ea343.firebasestorage.app",
+  messagingSenderId: "899873567347",
+  appId: "1:899873567347:web:f1024689a0c662ac05f006",
 };
 
 
@@ -20,18 +20,6 @@ export function initializeFirebase() {
   if (getApps().length) {
     // If already initialized, return the SDKs with the already initialized App
     return getSdks(getApp());
-  }
-
-  // Check if all required environment variables are present
-  if (
-    !firebaseConfig.apiKey ||
-    !firebaseConfig.authDomain ||
-    !firebaseConfig.projectId
-  ) {
-    // This error will be thrown in the browser console if the .env.local file is missing or misconfigured.
-    throw new Error(
-      'Firebase config is missing. Make sure you have a correctly configured .env.local file in your project root.'
-    );
   }
 
   const firebaseApp = initializeApp(firebaseConfig);
