@@ -1,4 +1,3 @@
-
 import type { Metadata, Viewport } from 'next';
 import { FirebaseClientProvider } from '@/firebase';
 import { Header } from '@/components/header';

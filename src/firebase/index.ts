@@ -1,11 +1,10 @@
-
 'use client';
 
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
-// Прямая конфигурация Firebase для стабильности
+// Прямая конфигурация Firebase для стабильности работы в любых условиях
 const firebaseConfig = {
   apiKey: "AIzaSyDUXLcXYk5uC6h4PNsn_4HueNrhUTvHE0g",
   authDomain: "studio-8195792708-ea343.firebaseapp.com",
