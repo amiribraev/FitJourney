@@ -4,7 +4,7 @@ import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
-// Конфигурация Firebase перенесена напрямую в код, чтобы проект работал сразу после скачивания.
+// Конфигурация Firebase вшита напрямую, чтобы проект работал без .env файлов
 const firebaseConfig = {
   apiKey: "AIzaSyDUXLcXYk5uC6h4PNsn_4HueNrhUTvHE0g",
   authDomain: "studio-8195792708-ea343.firebaseapp.com",
@@ -14,11 +14,8 @@ const firebaseConfig = {
   appId: "1:899873567347:web:f1024689a0c662ac05f006",
 };
 
-
-// IMPORTANT: DO NOT MODIFY THIS FUNCTION
 export function initializeFirebase() {
   if (getApps().length) {
-    // If already initialized, return the SDKs with the already initialized App
     return getSdks(getApp());
   }
 
