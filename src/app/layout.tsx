@@ -39,7 +39,7 @@ export default function RootLayout({
         {/* Apple Touch Icon */}
         <link rel="apple-touch-icon" href="https://picsum.photos/seed/fitpath/180/180" />
       </head>
-      <body className="font-body antialiased selection:bg-primary/20">
+      <body className="font-body antialiased selection:bg-primary/20" suppressHydrationWarning>
         <FirebaseClientProvider>
           <div className="relative flex min-h-screen flex-col">
             <Header />
