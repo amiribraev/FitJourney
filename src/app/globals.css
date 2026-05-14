@@ -61,8 +61,16 @@
 @layer base {
   * {
     @apply border-border;
+    -webkit-tap-highlight-color: transparent;
   }
   body {
     @apply bg-background text-foreground;
+    /* Оптимизация для мобильных устройств */
+    overscroll-behavior-y: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  /* Запрет выделения текста на кнопках для ощущения нативности */
+  button, a {
+    user-select: none;
   }
 }
