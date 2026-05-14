@@ -5,7 +5,7 @@ import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
-// Конфигурация Firebase прописана напрямую для стабильной работы
+// Конфигурация Firebase прописана напрямую для стабильной работы локально и в облаке
 const firebaseConfig = {
   apiKey: "AIzaSyDUXLcXYk5uC6h4PNsn_4HueNrhUTvHE0g",
   authDomain: "studio-8195792708-ea343.firebaseapp.com",
