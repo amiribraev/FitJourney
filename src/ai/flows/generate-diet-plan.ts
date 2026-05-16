@@ -25,7 +25,7 @@ const DailyMealPlanSchema = z.array(
     mealType: z.enum(['Завтрак', 'Обед', 'Ужин', 'Перекус']).describe('Тип приёма пищи.'),
     meal: z.string().describe('Название блюда с кратким составом или порцией.'),
     calories: z.number().describe('Калорийность порции в ккал.'),
-    budget: z.number().describe('Примерная стоимость одной порции в рублях (РФ, обычные магазины).'),
+    budget: z.number().describe('Примерная стоимость одной порции в тенге (Казахстан, обычные магазины).'),
     protein: z.number().optional().describe('Белки в граммах (приблизительно).'),
   })
 );
@@ -56,10 +56,10 @@ export async function generateDietPlan(input: GenerateDietPlanInput): Promise<Ge
 // Fallback plan when API fails
 function getFallbackDietPlan(): GenerateDietPlanOutput {
   const dayMeals = [
-    { mealType: 'Завтрак' as const, meal: 'Овсянка на воде с яблоком (порция 250 г)', calories: 320, budget: 45, protein: 10 },
-    { mealType: 'Обед' as const, meal: 'Куриная грудка с гречкой и овощами', calories: 480, budget: 180, protein: 42 },
-    { mealType: 'Ужин' as const, meal: 'Творог 5% с огурецом', calories: 280, budget: 90, protein: 28 },
-    { mealType: 'Перекус' as const, meal: 'Яблоко и горсть миндаля (20 г)', calories: 180, budget: 60, protein: 5 },
+    { mealType: 'Завтрак' as const, meal: 'Овсянка на воде с яблоком (порция 250 г)', calories: 320, budget: 200, protein: 10 },
+    { mealType: 'Обед' as const, meal: 'Куриная грудка с гречкой и овощами', calories: 480, budget: 850, protein: 42 },
+    { mealType: 'Ужин' as const, meal: 'Творог 5% с огурцом', calories: 280, budget: 400, protein: 28 },
+    { mealType: 'Перекус' as const, meal: 'Яблоко и горсть миндаля (20 г)', calories: 180, budget: 250, protein: 5 },
   ];
   return {
     weeklyDietPlan: {
@@ -97,14 +97,14 @@ const prompt = ai.definePrompt({
   - Ровно 4 приёма: Завтрак, Обед, Ужин, Перекус (поле mealType).
   - meal — конкретное блюдо: продукты, способ готовки, размер порции в граммах или «1 порция».
   - calories — ккал на порцию (целое число).
-  - budget — примерная цена порции в рублях для России (обычный супермаркет, без ресторанов).
+   - budget — примерная цена порции в тенге для Казахстана (обычный супермаркет, без ресторанов).
   - protein — граммы белка в порции (число).
 
   ## Бюджет
   - Указывай реалистичный budget для каждой трапезы.
   - Варьируй блюда: не все дни одинаковые.
   - Для weight loss можно чуть экономнее; для muscle gain — больше белковых продуктов (бюджет выше).
-  - Сумма budget за день — ориентир «~N ₽/день» можно упомянуть в meal только если нужно; в JSON достаточно полей budget.
+   - Сумма budget за день — ориентир «~N ₸/день» можно упомянуть в meal только если нужно; в JSON достаточно полей budget.
 
   ## По цели
   - weight loss: больше овощей, клетчатки, нежирный белок; перекус лёгкий (150–250 ккал).
@@ -121,10 +121,10 @@ const prompt = ai.definePrompt({
   {
     "weeklyDietPlan": {
       "Monday": [
-        { "mealType": "Завтрак", "meal": "Овсянка на молоке 2.5% с бананом (300 г)", "calories": 380, "budget": 55, "protein": 14 },
-        { "mealType": "Обед", "meal": "Индейка тушёная с рисом и салатом из огурца и помидора", "calories": 520, "budget": 220, "protein": 45 },
-        { "mealType": "Ужин", "meal": "Запечённая треска с брокколи (200 г рыбы)", "calories": 340, "budget": 280, "protein": 38 },
-        { "mealType": "Перекус", "meal": "Кефир 1% 250 мл + 2 цельнозерновых хлебца", "calories": 190, "budget": 50, "protein": 12 }
+        { "mealType": "Завтрак", "meal": "Овсянка на молоке 2.5% с бананом (300 г)", "calories": 380, "budget": 250, "protein": 14 },
+        { "mealType": "Обед", "meal": "Индейка тушёная с рисом и салатом из огурца и помидора", "calories": 520, "budget": 1100, "protein": 45 },
+        { "mealType": "Ужин", "meal": "Запечённая треска с брокколи (200 г рыбы)", "calories": 340, "budget": 1300, "protein": 38 },
+        { "mealType": "Перекус", "meal": "Кефир 1% 250 мл + 2 цельнозерновых хлебца", "calories": 190, "budget": 350, "protein": 12 }
       ]
     }
   }

@@ -1,24 +1,32 @@
 
 import type { ServiceAccount } from 'firebase-admin/app';
+import { readFileSync, existsSync } from 'fs';
+import { join } from 'path';
 
 function getServiceAccount(): ServiceAccount {
   const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
 
-  if (!serviceAccountJson) {
-    throw new Error(
-      'The FIREBASE_SERVICE_ACCOUNT_JSON environment variable is not set. ' +
-      'It should contain the JSON credentials for your Firebase service account.'
-    );
+  if (serviceAccountJson) {
+    try {
+      return JSON.parse(serviceAccountJson);
+    } catch {
+      throw new Error('FIREBASE_SERVICE_ACCOUNT_JSON не является корректным JSON');
+    }
   }
 
-  try {
-    const serviceAccount = JSON.parse(serviceAccountJson);
-    return serviceAccount;
-  } catch (error: any) {
-    throw new Error(
-      `Failed to parse FIREBASE_SERVICE_ACCOUNT_JSON. Make sure it's a valid JSON string. Error: ${error.message}`
-    );
+  const localPath = join(process.cwd(), 'serviceAccountKey.json');
+  if (existsSync(localPath)) {
+    try {
+      const raw = readFileSync(localPath, 'utf-8');
+      return JSON.parse(raw);
+    } catch {
+      throw new Error('Не удалось прочитать serviceAccountKey.json');
+    }
   }
+
+  throw new Error(
+    'Не настроен FIREBASE_SERVICE_ACCOUNT_JSON в .env и отсутствует serviceAccountKey.json в корне проекта'
+  );
 }
 
 export const SERVICE_ACCOUNT = getServiceAccount();
