@@ -22,8 +22,11 @@ export type GenerateDietPlanInput = z.infer<typeof GenerateDietPlanInputSchema>;
 
 const DailyMealPlanSchema = z.array(
   z.object({
-    meal: z.string().describe('The meal suggestion.'),
-    calories: z.number().describe('The estimated calorie count for the meal.'),
+    mealType: z.enum(['Завтрак', 'Обед', 'Ужин', 'Перекус']).describe('Тип приёма пищи.'),
+    meal: z.string().describe('Название блюда с кратким составом или порцией.'),
+    calories: z.number().describe('Калорийность порции в ккал.'),
+    budget: z.number().describe('Примерная стоимость одной порции в рублях (РФ, обычные магазины).'),
+    protein: z.number().optional().describe('Белки в граммах (приблизительно).'),
   })
 );
 
@@ -41,44 +44,91 @@ const GenerateDietPlanOutputSchema = z.object({
 export type GenerateDietPlanOutput = z.infer<typeof GenerateDietPlanOutputSchema>;
 
 export async function generateDietPlan(input: GenerateDietPlanInput): Promise<GenerateDietPlanOutput> {
-  return generateDietPlanFlow(input);
+  try {
+    return await generateDietPlanFlow(input);
+  } catch (error) {
+    console.error('Error generating diet plan:', error);
+    // Return fallback diet plan on error
+    return getFallbackDietPlan();
+  }
+}
+
+// Fallback plan when API fails
+function getFallbackDietPlan(): GenerateDietPlanOutput {
+  const dayMeals = [
+    { mealType: 'Завтрак' as const, meal: 'Овсянка на воде с яблоком (порция 250 г)', calories: 320, budget: 45, protein: 10 },
+    { mealType: 'Обед' as const, meal: 'Куриная грудка с гречкой и овощами', calories: 480, budget: 180, protein: 42 },
+    { mealType: 'Ужин' as const, meal: 'Творог 5% с огурецом', calories: 280, budget: 90, protein: 28 },
+    { mealType: 'Перекус' as const, meal: 'Яблоко и горсть миндаля (20 г)', calories: 180, budget: 60, protein: 5 },
+  ];
+  return {
+    weeklyDietPlan: {
+      Monday: dayMeals,
+      Tuesday: dayMeals,
+      Wednesday: dayMeals,
+      Thursday: dayMeals,
+      Friday: dayMeals,
+      Saturday: dayMeals,
+      Sunday: dayMeals,
+    },
+  };
 }
 
 const prompt = ai.definePrompt({
   name: 'generateDietPlanPrompt',
   input: {schema: GenerateDietPlanInputSchema},
   output: {schema: GenerateDietPlanOutputSchema},
-  prompt: `You are a personal trainer and nutritionist. You will generate a personalized weekly diet plan based on the user's age, gender, weight, height, and fitness goal.
-  
-  **All output text, especially meal names, must be in Russian.**
+  prompt: `Ты — нутрициолог. Составь недельный план питания на русском языке с калориями и бюджетом каждой трапезы.
 
-  User data:
-  Age: {{{age}}}
-  Gender: {{{gender}}}
-  Weight: {{{weight}}} kg
-  Height: {{{height}}} cm
-  Goal: {{{goal}}}
+  Данные пользователя:
+  - Возраст: {{{age}}} лет
+  - Пол: {{{gender}}}
+  - Вес: {{{weight}}} кг
+  - Рост: {{{height}}} см
+  - Цель: {{{goal}}} (weight loss = дефицит калорий, muscle gain = профицит и больше белка)
 
-  The weekly diet plan should include daily meal suggestions and estimated calorie counts. The weeklyDietPlan output should be a JSON object where keys are the days of the week (Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday) and the values are arrays of meal suggestions for that day.
-  Each meal suggestion object in the array should include the meal and the estimated calorie count. Ensure that the calorie count aligns with the specified fitness goal.
-  Ensure you provide a full 7-day plan.
+  ## Расчёт калорий
+  1. Оцени базовый обмен (BMR) по формуле Миффлина — Сан Жеора.
+  2. Умножь на коэффициент активности ~1.4 (умеренная активность).
+  3. weight loss: −15…20% от суточной нормы; muscle gain: +10…15%.
+  4. Сумма calories за день должна быть близка к суточной норме (допуск ±100 ккал).
 
-  Example (in Russian):
+  ## Структура каждого дня
+  - Ровно 4 приёма: Завтрак, Обед, Ужин, Перекус (поле mealType).
+  - meal — конкретное блюдо: продукты, способ готовки, размер порции в граммах или «1 порция».
+  - calories — ккал на порцию (целое число).
+  - budget — примерная цена порции в рублях для России (обычный супермаркет, без ресторанов).
+  - protein — граммы белка в порции (число).
+
+  ## Бюджет
+  - Указывай реалистичный budget для каждой трапезы.
+  - Варьируй блюда: не все дни одинаковые.
+  - Для weight loss можно чуть экономнее; для muscle gain — больше белковых продуктов (бюджет выше).
+  - Сумма budget за день — ориентир «~N ₽/день» можно упомянуть в meal только если нужно; в JSON достаточно полей budget.
+
+  ## По цели
+  - weight loss: больше овощей, клетчатки, нежирный белок; перекус лёгкий (150–250 ккал).
+  - muscle gain: 1.6–2 г белка на кг веса в сутки; углеводы вокруг тренировок; перекус с белком.
+
+  ## Разнообразие
+  - 7 разных дней, без копипасты одного и того же меню.
+  - Простые доступные продукты (курица, рыба, крупы, яйца, творог, овощи).
+  - Избегай экзотики и дорогих деликатесов без необходимости.
+
+  Ответ — только JSON. Ключ weeklyDietPlan, дни Monday … Sunday.
+
+  Пример одного дня:
   {
     "weeklyDietPlan": {
       "Monday": [
-        { "meal": "Овсянка с ягодами и орехами", "calories": 300 },
-        { "meal": "Салат с курицей гриль", "calories": 400 },
-        { "meal": "Лосось с жареными овощами", "calories": 500 }
-      ],
-      "Tuesday": [
-        { "meal": "Греческий йогурт с гранолой", "calories": 250 },
-        { "meal": "Сэндвич с индейкой на цельнозерновом хлебе", "calories": 350 },
-        { "meal": "Чечевичный суп с порцией бурого риса", "calories": 450 }
-      ],
-      ...and so on for all 7 days.
+        { "mealType": "Завтрак", "meal": "Овсянка на молоке 2.5% с бананом (300 г)", "calories": 380, "budget": 55, "protein": 14 },
+        { "mealType": "Обед", "meal": "Индейка тушёная с рисом и салатом из огурца и помидора", "calories": 520, "budget": 220, "protein": 45 },
+        { "mealType": "Ужин", "meal": "Запечённая треска с брокколи (200 г рыбы)", "calories": 340, "budget": 280, "protein": 38 },
+        { "mealType": "Перекус", "meal": "Кефир 1% 250 мл + 2 цельнозерновых хлебца", "calories": 190, "budget": 50, "protein": 12 }
+      ]
     }
   }
+  (остальные дни — по той же структуре, уникальное меню)
   `,
 });
 

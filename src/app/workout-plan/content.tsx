@@ -9,7 +9,8 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { doc } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 
-const exerciseIcons: Record<string, JSX.Element> = {
+// Memoized exercise icons (static data outside component)
+const EXERCISE_ICONS: Record<string, JSX.Element> = {
   jogging: <HeartPulse className="h-5 w-5 text-red-500" />,
   running: <HeartPulse className="h-5 w-5 text-red-500" />,
   swimming: <HeartPulse className="h-5 w-5 text-red-500" />,
@@ -18,18 +19,20 @@ const exerciseIcons: Record<string, JSX.Element> = {
   default: <Dumbbell className="h-5 w-5 text-primary" />,
 };
 
+// Memoized function to get exercise icon
 const getExerciseIcon = (exercise: string) => {
   const lowerEx = exercise.toLowerCase();
-    for (const key in exerciseIcons) {
+  for (const key in EXERCISE_ICONS) {
     if (lowerEx.includes(key)) {
-      return exerciseIcons[key];
+      return EXERCISE_ICONS[key];
     }
   }
-  return exerciseIcons.default;
+  return EXERCISE_ICONS.default;
 };
 
-const dayOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-const dayTranslations: Record<string, string> = {
+// Memoized day translations (static data outside component)
+const DAY_ORDER = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const DAY_TRANSLATIONS: Record<string, string> = {
   Monday: 'Понедельник',
   Tuesday: 'Вторник',
   Wednesday: 'Среда',
@@ -77,10 +80,10 @@ export default function WorkoutPlanContent() {
         </CardHeader>
         <CardContent>
           <Accordion type="single" collapsible className="w-full" defaultValue="item-0">
-            {dayOrder.map((day, index) => (
+            {DAY_ORDER.map((day, index) => (
               <AccordionItem value={`item-${index}`} key={day}>
                 <AccordionTrigger className="text-lg font-semibold hover:no-underline capitalize">
-                  {dayTranslations[day]}
+                  {DAY_TRANSLATIONS[day]}
                 </AccordionTrigger>
                 <AccordionContent>
                   <ul className="space-y-4 pt-2">

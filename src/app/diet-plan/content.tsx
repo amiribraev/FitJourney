@@ -9,7 +9,8 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { doc } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 
-const mealIcons: Record<string, JSX.Element> = {
+// Memoized meal icons (static data outside component)
+const MEAL_ICONS: Record<string, JSX.Element> = {
   salad: <Salad className="h-5 w-5 text-green-500" />,
   salmon: <Fish className="h-5 w-5 text-pink-500" />,
   fish: <Fish className="h-5 w-5 text-pink-500" />,
@@ -17,18 +18,9 @@ const mealIcons: Record<string, JSX.Element> = {
   default: <Utensils className="h-5 w-5 text-primary" />,
 };
 
-const getMealIcon = (meal: string) => {
-  const lowerMeal = meal.toLowerCase();
-  for (const key in mealIcons) {
-    if (lowerMeal.includes(key)) {
-      return mealIcons[key];
-    }
-  }
-  return mealIcons.default;
-};
-
-const dayOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-const dayTranslations: Record<string, string> = {
+// Memoized day translations (static data outside component)
+const DAY_ORDER = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const DAY_TRANSLATIONS: Record<string, string> = {
   Monday: 'Понедельник',
   Tuesday: 'Вторник',
   Wednesday: 'Среда',
@@ -36,6 +28,17 @@ const dayTranslations: Record<string, string> = {
   Friday: 'Пятница',
   Saturday: 'Суббота',
   Sunday: 'Воскресенье',
+};
+
+// Memoized function to get meal icon
+const getMealIcon = (meal: string) => {
+  const lowerMeal = meal.toLowerCase();
+  for (const key in MEAL_ICONS) {
+    if (lowerMeal.includes(key)) {
+      return MEAL_ICONS[key];
+    }
+  }
+  return MEAL_ICONS.default;
 };
 
 export default function DietPlanContent() {
@@ -75,24 +78,52 @@ export default function DietPlanContent() {
         </CardHeader>
         <CardContent>
           <Accordion type="single" collapsible className="w-full" defaultValue="item-0">
-            {dayOrder.map((day, index) => (
+            {DAY_ORDER.map((day, index) => (
               <AccordionItem value={`item-${index}`} key={day}>
                 <AccordionTrigger className="text-lg font-semibold hover:no-underline capitalize">
-                  {dayTranslations[day]}
+                  {DAY_TRANSLATIONS[day]}
                 </AccordionTrigger>
                 <AccordionContent>
                   <ul className="space-y-4 pt-2">
-                    {weeklyPlan && weeklyPlan[day as keyof typeof weeklyPlan] ? (
-                      (weeklyPlan[day as keyof typeof weeklyPlan] as { meal: string, calories: number }[]).map((meal, mealIndex) => (
+                    {weeklyPlan && weeklyPlan[day as keyof typeof weeklyPlan] ? (() => {
+                      const dayMeals = weeklyPlan[day as keyof typeof weeklyPlan] as {
+                        meal: string;
+                        calories: number;
+                        mealType?: string;
+                        budget?: number;
+                        protein?: number;
+                      }[];
+                      const dayCalories = dayMeals.reduce((sum, m) => sum + (m.calories ?? 0), 0);
+                      const dayBudget = dayMeals.reduce((sum, m) => sum + (m.budget ?? 0), 0);
+                      const dayProtein = dayMeals.reduce((sum, m) => sum + (m.protein ?? 0), 0);
+                      return (
+                      <>
+                      {dayMeals.map((meal, mealIndex) => (
                         <li key={mealIndex} className="flex items-start gap-4 p-4 rounded-lg bg-background">
                           <div>{getMealIcon(meal.meal)}</div>
                           <div className="flex-1">
+                            {meal.mealType && (
+                              <p className="text-xs font-medium uppercase tracking-wide text-primary mb-1">
+                                {meal.mealType}
+                              </p>
+                            )}
                             <p className="font-medium">{meal.meal}</p>
-                            <p className="text-sm text-muted-foreground">{meal.calories} калорий</p>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              {meal.calories} ккал
+                              {meal.protein != null && ` · белок ~${meal.protein} г`}
+                              {meal.budget != null && ` · ~${meal.budget} ₽`}
+                            </p>
                           </div>
                         </li>
-                      ))
-                    ) : (
+                      ))}
+                      <li className="pt-2 border-t text-sm font-medium text-muted-foreground">
+                        Итого за день: {dayCalories} ккал
+                        {dayProtein > 0 && ` · белок ~${dayProtein} г`}
+                        {dayBudget > 0 && ` · бюджет ~${dayBudget} ₽`}
+                      </li>
+                      </>
+                      );
+                    })() : (
                       // Skeleton loader for meals
                       [...Array(3)].map((_, i) => (
                         <li key={i} className="flex items-start gap-4 p-4 rounded-lg bg-background">

@@ -1,0 +1,8 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "/^cd \"d:\\\\сайт дипломка\\\\FitJourney\" ; npm install$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}

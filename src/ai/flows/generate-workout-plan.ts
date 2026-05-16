@@ -20,7 +20,9 @@ const GenerateWorkoutPlanInputSchema = z.object({
 });
 export type GenerateWorkoutPlanInput = z.infer<typeof GenerateWorkoutPlanInputSchema>;
 
-const DailyWorkoutPlanSchema = z.array(z.string()).describe("Array of exercises for a single day. If it's a rest day, it should be an empty array or contain 'Rest'.");
+const DailyWorkoutPlanSchema = z.array(z.string()).describe(
+  "Упражнения на день. Каждая строка — одно упражнение в формате: «Название — подходы × повторения/время, отдых N сек». Для кардио указывай длительность и интенсивность. В день отдыха — пустой массив или одна строка «Отдых»."
+);
 
 const GenerateWorkoutPlanOutputSchema = z.object({
   weeklyWorkoutPlan: z.object({
@@ -36,42 +38,108 @@ const GenerateWorkoutPlanOutputSchema = z.object({
 export type GenerateWorkoutPlanOutput = z.infer<typeof GenerateWorkoutPlanOutputSchema>;
 
 export async function generateWorkoutPlan(input: GenerateWorkoutPlanInput): Promise<GenerateWorkoutPlanOutput> {
-  return generateWorkoutPlanFlow(input);
+  try {
+    return await generateWorkoutPlanFlow(input);
+  } catch (error) {
+    console.error('Error generating workout plan:', error);
+    // Return fallback workout plan on error
+    return getFallbackWorkoutPlan();
+  }
+}
+
+// Fallback plan when API fails
+function getFallbackWorkoutPlan(): GenerateWorkoutPlanOutput {
+  return {
+    weeklyWorkoutPlan: {
+      Monday: [
+        'Разминка — 5 мин лёгкой ходьбы на месте',
+        'Приседания — 3 подхода × 15 повторений, отдых 60 сек',
+        'Отжимания — 3 подхода × 10 повторений, отдых 60 сек',
+        'Планка — 3 подхода × 30 сек, отдых 45 сек',
+        'Заминка — 5 мин растяжки',
+      ],
+      Tuesday: ['Отдых — восстановление, лёгкая прогулка 20 мин по желанию'],
+      Wednesday: [
+        'Бег на месте / велотренажёр — 20 мин, умеренный темп',
+        'Выпады — 3 подхода × 12 на каждую ногу, отдых 60 сек',
+        'Скручивания — 3 подхода × 15 повторений, отдых 45 сек',
+      ],
+      Thursday: ['Отдых'],
+      Friday: [
+        'Разминка — 5 мин',
+        'Приседания с выпрыгиванием — 3 × 12, отдых 60 сек',
+        'Берпи — 3 × 8, отдых 90 сек',
+        'Растяжка всего тела — 10 мин',
+      ],
+      Saturday: ['Йога или растяжка — 25 мин, спокойный темп'],
+      Sunday: ['Отдых'],
+    },
+  };
 }
 
 const prompt = ai.definePrompt({
   name: 'generateWorkoutPlanPrompt',
   input: {schema: GenerateWorkoutPlanInputSchema},
   output: {schema: GenerateWorkoutPlanOutputSchema},
-  prompt: `You are a personal trainer who creates weekly workout plans based on the user's information.
+  prompt: `Ты — персональный тренер. Составь понятный недельный план тренировок на русском языке.
 
-  **All output text, especially exercise names, must be in Russian.**
+  Данные пользователя:
+  - Возраст: {{{age}}} лет
+  - Пол: {{{gender}}}
+  - Вес: {{{weight}}} кг
+  - Рост: {{{height}}} см
+  - Цель: {{{goal}}} (weight loss = похудение, muscle gain = набор мышечной массы)
 
-  User Information:
-  Age: {{{age}}}
-  Gender: {{{gender}}}
-  Weight: {{{weight}}} kg
-  Height: {{{height}}} cm
-  Goal: {{{goal}}}
+  ## Формат каждого упражнения (обязательно)
+  Каждый элемент массива — одна строка. Пользователь должен сразу понимать объём нагрузки:
+  - Силовые: «Название — N подходов × M повторений, отдых X сек» (при необходимости: «вес: лёгкий/средний/тяжёлый» или «с собственным весом»).
+  - Кардио: «Название — N мин, темп: лёгкий/умеренный/интенсивный».
+  - Изометрия: «Планка — 3 подхода × 40 сек, отдых 45 сек».
+  - Разминка и заминка — отдельными строками в начале и конце тренировочного дня.
 
-  Create a weekly workout plan that is tailored to the user's goal. The workout plan should include the day of the week and a list of exercises for that day.
-  Ensure you provide a full 7-day plan. If a day is a rest day, the array for that day should be empty or contain a single string like "Отдых".
+  ## Структура недели
+  - Полный план на 7 дней: Monday … Sunday.
+  - 2–4 тренировочных дня, 1–2 дня лёгкой активности (йога, растяжка, прогулка), остальное — отдых.
+  - В день отдыха: один элемент «Отдых» или пустой массив; можно добавить «лёгкая прогулка 20–30 мин».
+  - На тренировочный день: 5–8 строк (разминка + 3–5 упражнений + заминка).
+  - Учитывай возраст и пол: безопасные нагрузки, без экстремальных объёмов для новичков.
 
-  The workout plan should be structured as a JSON object where the 'weeklyWorkoutPlan' key contains an object. This inner object should have each day of the week (Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday) as a key, and the value is an array of exercises for that day.
+  ## По цели
+  - weight loss: круговые и full-body, кардио 2–3 раза в неделю, больше повторений (12–20), короткий отдых 45–60 сек.
+  - muscle gain: базовые многосуставные, 3–5 подходов, 6–12 повторений, отдых 90–120 сек, меньше кардио.
 
-  For weight loss, focus on cardio and full body workouts with moderate weight.
-  For muscle gain, focus on compound exercises with heavy weight and lower reps.
+  ## Дополнительно (включай в строки, где уместно)
+  - Подсказка по технике в скобках, если упражнение неочевидное: «(спина прямая, колени не выходят за носки)».
+  - Ориентир по длительности всей тренировки в первой или последней строке дня: «~45 мин».
 
-  Example (in Russian):
+  Ответ — только JSON по схеме. Ключ weeklyWorkoutPlan, внутри дни недели на английском (Monday … Sunday).
+
+  Пример:
   {
     "weeklyWorkoutPlan": {
-      "Monday": ["30 минут бега", "Круговая тренировка на все тело"],
+      "Monday": [
+        "Разминка — 5 мин: суставная гимнастика, лёгкий бег на месте",
+        "Приседания — 3 подхода × 15 повторений, отдых 60 сек (собственный вес)",
+        "Отжимания от пола — 3 × 10, отдых 60 сек",
+        "Планка — 3 × 40 сек, отдых 45 сек",
+        "Заминка — 5 мин растяжки ног и спины",
+        "~40 мин всего"
+      ],
       "Tuesday": ["Отдых"],
-      "Wednesday": ["30 минут плавания", "Силовая тренировка"],
+      "Wednesday": [
+        "Бег / эллипс — 25 мин, умеренный темп",
+        "Выпады — 3 × 12 на каждую ногу, отдых 60 сек",
+        "Скручивания — 3 × 20, отдых 45 сек"
+      ],
       "Thursday": ["Отдых"],
-      "Friday": ["30 минут на велотренажере", "Круговая тренировка на все тело"],
-      "Saturday": ["Отдых"],
-      "Sunday": ["Йога"]
+      "Friday": [
+        "Разминка — 5 мин",
+        "Жим гантелей лёжа — 4 × 8, отдых 90 сек, вес средний",
+        "Тяга в наклоне — 4 × 10, отдых 90 сек",
+        "Заминка — 5 мин"
+      ],
+      "Saturday": ["Йога — 30 мин, спокойный темп"],
+      "Sunday": ["Отдых"]
     }
   }
   `,

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import {
   DocumentReference,
   onSnapshot,
+  getDoc,
   DocumentData,
   FirestoreError,
   DocumentSnapshot,
@@ -24,8 +25,13 @@ export interface UseDocResult<T> {
   error: FirestoreError | Error | null; // Error object, or null.
 }
 
+export interface UseDocOptions {
+  /** If true, fetch data once instead of subscribing to real-time updates. Default: false */
+  once?: boolean;
+}
+
 /**
- * React hook to subscribe to a single Firestore document in real-time.
+ * React hook to subscribe to a single Firestore document in real-time or fetch once.
  * Handles nullable references.
  * 
  * IMPORTANT! YOU MUST MEMOIZE the inputted memoizedTargetRefOrQuery or BAD THINGS WILL HAPPEN
@@ -36,10 +42,12 @@ export interface UseDocResult<T> {
  * @template T Optional type for document data. Defaults to any.
  * @param {DocumentReference<DocumentData> | null | undefined} docRef -
  * The Firestore DocumentReference. Waits if null/undefined.
+ * @param {UseDocOptions} options - Configuration options (e.g., once: true for one-time read)
  * @returns {UseDocResult<T>} Object with data, isLoading, error.
  */
 export function useDoc<T = any>(
   memoizedDocRef: DocumentReference<DocumentData> | null | undefined,
+  options?: UseDocOptions,
 ): UseDocResult<T> {
   type StateDataType = WithId<T> | null;
 
@@ -57,37 +65,57 @@ export function useDoc<T = any>(
 
     setIsLoading(true);
     setError(null);
-    // Optional: setData(null); // Clear previous data instantly
 
-    const unsubscribe = onSnapshot(
-      memoizedDocRef,
-      (snapshot: DocumentSnapshot<DocumentData>) => {
-        if (snapshot.exists()) {
-          setData({ ...(snapshot.data() as T), id: snapshot.id });
-        } else {
-          // Document does not exist
-          setData(null);
-        }
-        setError(null); // Clear any previous error on successful snapshot (even if doc doesn't exist)
-        setIsLoading(false);
-      },
-      (error: FirestoreError) => {
-        const contextualError = new FirestorePermissionError({
-          operation: 'get',
-          path: memoizedDocRef.path,
+    if (options?.once) {
+      // One-time read (less expensive than real-time listener)
+      getDoc(memoizedDocRef)
+        .then((snapshot: DocumentSnapshot<DocumentData>) => {
+          if (snapshot.exists()) {
+            setData({ ...(snapshot.data() as T), id: snapshot.id });
+          } else {
+            setData(null);
+          }
+          setError(null);
+          setIsLoading(false);
         })
+        .catch((error: FirestoreError) => {
+          const contextualError = new FirestorePermissionError({
+            operation: 'get',
+            path: memoizedDocRef.path,
+          });
+          setError(contextualError);
+          setData(null);
+          setIsLoading(false);
+          errorEmitter.emit('permission-error', contextualError);
+        });
+    } else {
+      // Real-time listener (default behavior)
+      const unsubscribe = onSnapshot(
+        memoizedDocRef,
+        (snapshot: DocumentSnapshot<DocumentData>) => {
+          if (snapshot.exists()) {
+            setData({ ...(snapshot.data() as T), id: snapshot.id });
+          } else {
+            setData(null);
+          }
+          setError(null);
+          setIsLoading(false);
+        },
+        (error: FirestoreError) => {
+          const contextualError = new FirestorePermissionError({
+            operation: 'get',
+            path: memoizedDocRef.path,
+          });
+          setError(contextualError);
+          setData(null);
+          setIsLoading(false);
+          errorEmitter.emit('permission-error', contextualError);
+        }
+      );
 
-        setError(contextualError)
-        setData(null)
-        setIsLoading(false)
-
-        // trigger global error propagation
-        errorEmitter.emit('permission-error', contextualError);
-      }
-    );
-
-    return () => unsubscribe();
-  }, [memoizedDocRef]); // Re-run if the memoizedDocRef changes.
+      return () => unsubscribe();
+    }
+  }, [memoizedDocRef, options?.once]); // Re-run if the memoizedDocRef or options change.
 
   return { data, isLoading, error };
 }
