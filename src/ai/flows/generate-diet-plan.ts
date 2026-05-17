@@ -12,11 +12,22 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const GenerateDietPlanInputSchema = z.object({
-  age: z.number().describe('The age of the user in years.'),
-  gender: z.enum(['male', 'female']).describe('The gender of the user.'),
-  weight: z.number().describe('The weight of the user in kilograms.'),
-  height: z.number().describe('The height of the user in centimeters.'),
-  goal: z.enum(['weight loss', 'muscle gain']).describe('The fitness goal of the user.'),
+  age: z.number().describe('Возраст пользователя в годах.'),
+  gender: z.enum(['male', 'female']).describe('Пол пользователя.'),
+  weight: z.number().describe('Вес в кг.'),
+  height: z.number().describe('Рост в см.'),
+  goal: z.enum(['weight loss', 'muscle gain', 'maintenance']).describe('Цель: похудение, набор массы или поддержание.'),
+  activityLevel: z.enum(['sedentary', 'light', 'moderate', 'active', 'very-active']).describe('Уровень активности по шкале 1–5.'),
+  fitnessLevel: z.enum(['beginner', 'intermediate', 'advanced']).describe('Уровень подготовки.'),
+  dietRestriction: z.enum(['none', 'vegan', 'vegetarian', 'halal', 'gluten-free', 'lactose-free']).describe('Ограничения в питании.'),
+  allergies: z.array(z.string()).default([]).describe('Список аллергенов, которых следует избегать.'),
+  equipment: z.enum(['gym', 'home', 'no-equipment']).describe('Доступное оборудование.'),
+  tdee: z.number().describe('Рассчитанная суточная норма калорий (TDEE) с учётом цели.'),
+  macros: z.object({
+    protein: z.number().describe('Норма белка в граммах в сутки.'),
+    fat: z.number().describe('Норма жиров в граммах в сутки.'),
+    carbs: z.number().describe('Норма углеводов в граммах в сутки.'),
+  }),
 });
 export type GenerateDietPlanInput = z.infer<typeof GenerateDietPlanInputSchema>;
 
@@ -32,14 +43,14 @@ const DailyMealPlanSchema = z.array(
 
 const GenerateDietPlanOutputSchema = z.object({
   weeklyDietPlan: z.object({
-    Monday: DailyMealPlanSchema.describe("Meal plan for Monday."),
-    Tuesday: DailyMealPlanSchema.describe("Meal plan for Tuesday."),
-    Wednesday: DailyMealPlanSchema.describe("Meal plan for Wednesday."),
-    Thursday: DailyMealPlanSchema.describe("Meal plan for Thursday."),
-    Friday: DailyMealPlanSchema.describe("Meal plan for Friday."),
-    Saturday: DailyMealPlanSchema.describe("Meal plan for Saturday."),
-    Sunday: DailyMealPlanSchema.describe("Meal plan for Sunday."),
-  }).describe('A weekly diet plan with daily meal suggestions and estimated calorie counts for all 7 days of the week.'),
+    Monday: DailyMealPlanSchema.describe("План питания на понедельник."),
+    Tuesday: DailyMealPlanSchema.describe("План питания на вторник."),
+    Wednesday: DailyMealPlanSchema.describe("План питания на среду."),
+    Thursday: DailyMealPlanSchema.describe("План питания на четверг."),
+    Friday: DailyMealPlanSchema.describe("План питания на пятницу."),
+    Saturday: DailyMealPlanSchema.describe("План питания на субботу."),
+    Sunday: DailyMealPlanSchema.describe("План питания на воскресенье."),
+  }).describe('Недельный план питания с ежедневными вариантами блюд и примерной стоимостью.'),
 });
 export type GenerateDietPlanOutput = z.infer<typeof GenerateDietPlanOutputSchema>;
 
@@ -80,56 +91,65 @@ const prompt = ai.definePrompt({
   output: {schema: GenerateDietPlanOutputSchema},
   prompt: `Ты — нутрициолог. Составь недельный план питания на русском языке с калориями и бюджетом каждой трапезы.
 
-  Данные пользователя:
-  - Возраст: {{{age}}} лет
-  - Пол: {{{gender}}}
-  - Вес: {{{weight}}} кг
-  - Рост: {{{height}}} см
-  - Цель: {{{goal}}} (weight loss = дефицит калорий, muscle gain = профицит и больше белка)
+Данные пользователя:
+- Возраст: {{{age}}} лет
+- Пол: {{{gender}}} (male = мужской, female = женский)
+- Вес: {{{weight}}} кг
+- Рост: {{{height}}} см
+- Цель: {{{goal}}} (weight loss = похудение, muscle gain = набор массы, maintenance = поддержание)
+- Уровень активности: {{{activityLevel}}}
+- Уровень подготовки: {{{fitnessLevel}}}
+- Ограничения в питании: {{{dietRestriction}}}
+- Аллергии: {{{allergies}}}
+- Оборудование: {{{equipment}}}
+- Целевые TDEE: {{{tdee}}} ккал/день
+- Целевые БЖУ: белок {{{macros.protein}}} г, жиры {{{macros.fat}}} г, углеводы {{{macros.carbs}}} г/день
 
-  ## Расчёт калорий
-  1. Оцени базовый обмен (BMR) по формуле Миффлина — Сан Жеора.
-  2. Умножь на коэффициент активности ~1.4 (умеренная активность).
-  3. weight loss: −15…20% от суточной нормы; muscle gain: +10…15%.
-  4. Сумма calories за день должна быть близка к суточной норме (допуск ±100 ккал).
+## Обязательные правила
 
-  ## Структура каждого дня
-  - Ровно 4 приёма: Завтрак, Обед, Ужин, Перекус (поле mealType).
-  - meal — конкретное блюдо: продукты, способ готовки, размер порции в граммах или «1 порция».
-  - calories — ккал на порцию (целое число).
-   - budget — примерная цена порции в тенге для Казахстана (обычный супермаркет, без ресторанов).
-  - protein — граммы белка в порции (число).
+### Расчёт и калорийность
+- TDEE уже рассчитан, используй его как суточную норму.
+- Распредели калории по 4 приёмам пищи. Make sure daily total matches TDEE closely (±5%).
+- Белок: распредели примерно 30% суточной нормы на завтрак, 35% на обед, 30% на ужин, 5% на перекус.
 
-  ## Бюджет
-  - Указывай реалистичный budget для каждой трапезы.
-  - Варьируй блюда: не все дни одинаковые.
-  - Для weight loss можно чуть экономнее; для muscle gain — больше белковых продуктов (бюджет выше).
-   - Сумма budget за день — ориентир «~N ₸/день» можно упомянуть в meal только если нужно; в JSON достаточно полей budget.
+### Структура каждого дня
+- Ровно 4 приёма: Завтрак, Обед, Ужин, Перекус (поле mealType).
+- meal — конкретное блюдо с описанием состава и порции.
+- calories — ккал на порцию (целое число).
+- budget — примерная цена порции в тенге для Казахстана.
+- protein — граммы белка (число).
+- alternatives — массив альтернативных блюд при аллергиях (если applicable добавь это поле).
 
-  ## По цели
-  - weight loss: больше овощей, клетчатки, нежирный белок; перекус лёгкий (150–250 ккал).
-  - muscle gain: 1.6–2 г белка на кг веса в сутки; углеводы вокруг тренировок; перекус с белком.
+### Диетические ограничения
+Если dietRestriction не 'none':
+- vegan: только растительные продукты, нет мяса, рыбы, молока, яиц, мёда.
+- vegetarian: без мяса и рыбы, можно молочное/яйца.
+- halal: только халяль мясо, без свинины, алкоголя, желатина.
+- gluten-free: без пшеницы, ржи, ячменя, овса.
+- lactose-free: без молочного сахара, коровьего молока.
+Если allergies указаны — полностью исключи эти продукты и их производные.
 
-  ## Разнообразие
-  - 7 разных дней, без копипасты одного и того же меню.
-  - Простые доступные продукты (курица, рыба, крупы, яйца, творог, овощи).
-  - Избегай экзотики и дорогих деликатесов без необходимости.
+### Разнообразие
+- 7 разных дней без копипасты меню.
+- Простые доступные продукты, обычные казахстанские магазины.
+- Без экзотики и дорогих деликатесов.
 
-  Ответ — только JSON. Ключ weeklyDietPlan, дни Monday … Sunday.
+## Выходной формат
 
-  Пример одного дня:
-  {
-    "weeklyDietPlan": {
-      "Monday": [
-        { "mealType": "Завтрак", "meal": "Овсянка на молоке 2.5% с бананом (300 г)", "calories": 380, "budget": 250, "protein": 14 },
-        { "mealType": "Обед", "meal": "Индейка тушёная с рисом и салатом из огурца и помидора", "calories": 520, "budget": 1100, "protein": 45 },
-        { "mealType": "Ужин", "meal": "Запечённая треска с брокколи (200 г рыбы)", "calories": 340, "budget": 1300, "protein": 38 },
-        { "mealType": "Перекус", "meal": "Кефир 1% 250 мл + 2 цельнозерновых хлебца", "calories": 190, "budget": 350, "protein": 12 }
-      ]
-    }
+Только JSON. Ключ weeklyDietPlan, дни Monday … Sunday.
+Пример одного дня:
+{
+  "weeklyDietPlan": {
+    "Monday": [
+      { "mealType": "Завтрак", "meal": "Овсянка на молоке 2.5% с бананом (300 г)", "calories": 380, "budget": 250, "protein": 14, "alternatives": ["Овсянка на воде с мёдом"] },
+      { "mealType": "Обед", "meal": "Куриная грудка на гриле с гречкой", "calories": 520, "budget": 1100, "protein": 45 },
+      { "mealType": "Ужин", "meal": "Творог 5% с огурцом и зелёным луком", "calories": 280, "budget": 400, "protein": 28 },
+      { "mealType": "Перекус", "meal": "Яблоко + горсть миндаля (20 г)", "calories": 190, "budget": 350, "protein": 5 }
+    ]
   }
-  (остальные дни — по той же структуре, уникальное меню)
-  `,
+}
+(остальные дни — по той же структуре, уникальное меню)
+`,
 });
 
 const generateDietPlanFlow = ai.defineFlow(

@@ -47,14 +47,14 @@ export default function DietScreen() {
                     <Text style={styles.mealMeta}>
                       {meal.calories} ккал
                       {meal.protein != null ? ` · белок ~${meal.protein} г` : ''}
-                      {meal.budget != null ? ` · ~${meal.budget} ₽` : ''}
+                      {meal.budget != null ? ` · ~${meal.budget} ₸` : ''}
                     </Text>
                   </View>
                 ))}
                 <Text style={styles.dayTotal}>
                   Итого: {dayCalories} ккал
                   {dayProtein > 0 ? ` · белок ~${dayProtein} г` : ''}
-                  {dayBudget > 0 ? ` · ~${dayBudget} ₽` : ''}
+                  {dayBudget > 0 ? ` · ~${dayBudget} ₸` : ''}
                 </Text>
               </View>
             )}

@@ -3,7 +3,16 @@ import { Alert } from 'react-native';
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
 import 'firebase/compat/firestore';
-import type { UserProfile, Gender, Goal } from '@/lib/types';
+import type {
+  UserProfile,
+  Gender,
+  Goal,
+  ActivityLevel,
+  FitnessLevel,
+  Equipment,
+  DietRestriction,
+  GamificationStats,
+} from '@/lib/types';
 
 type AuthContextValue = {
   user: firebase.User | null;
@@ -19,9 +28,16 @@ type AuthContextValue = {
     weight: number;
     height: number;
     goal: Goal;
+    activityLevel?: ActivityLevel;
+    fitnessLevel?: FitnessLevel;
+    equipment?: Equipment;
+    dietRestriction?: DietRestriction;
+    allergies?: string[];
+    injuries?: string[];
   }) => Promise<void>;
   signOut: () => Promise<void>;
-  updateProfileData: (data: Partial<Pick<UserProfile, 'weight' | 'height' | 'goal'>>) => Promise<void>;
+  updateProfileData: (data: Partial<UserProfile>) => Promise<void>;
+  updateGamification: (data: Partial<GamificationStats>) => Promise<void>;
   refreshProfile: () => void;
 };
 
@@ -54,6 +70,46 @@ function getAuthErrorMessage(error: unknown): string {
   }
 }
 
+const DEFAULT_GAMIFICATION: GamificationStats = {
+  level: 1,
+  xp: 0,
+  xpToNextLevel: 100,
+  currentStreak: 0,
+  longestStreak: 0,
+  totalWorkouts: 0,
+  totalWorkoutMinutes: 0,
+  achievements: [],
+};
+
+function getInitialProfile(user: firebase.User, data: any): UserProfile {
+  return {
+    uid: user.uid,
+    email: user.email ?? '',
+    name: user.displayName ?? '',
+    age: data?.age ?? 0,
+    gender: data?.gender ?? 'male',
+    weight: data?.weight ?? 0,
+    height: data?.height ?? 0,
+    goal: data?.goal ?? 'maintenance',
+    activityLevel: data?.activityLevel ?? 'moderate',
+    fitnessLevel: data?.fitnessLevel ?? 'beginner',
+    equipment: data?.equipment ?? 'no-equipment',
+    dietRestriction: data?.dietRestriction ?? 'none',
+    allergies: data?.allergies ?? [],
+    injuries: data?.injuries ?? [],
+    tdee: data?.tdee ?? 0,
+    macros: data?.macros ?? { protein: 0, fat: 0, carbs: 0 },
+    dietPlan: data?.dietPlan,
+    workoutPlan: data?.workoutPlan,
+    progressLogs: data?.progressLogs ?? [],
+    bodyMeasurements: data?.bodyMeasurements ?? [],
+    workoutCalendar: data?.workoutCalendar ?? [],
+    gamification: data?.gamification ?? DEFAULT_GAMIFICATION,
+    createdAt: data?.createdAt ?? new Date().toISOString(),
+    updatedAt: data?.updatedAt ?? new Date().toISOString(),
+  };
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<firebase.User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -63,7 +119,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const unsubAuth = firebase.auth().onAuthStateChanged((firebaseUser) => {
       setUser(firebaseUser);
-      if (!firebaseUser) { setProfile(null); setLoading(false); }
+      if (!firebaseUser) {
+        setProfile(null);
+        setLoading(false);
+      }
     });
     return unsubAuth;
   }, []);
@@ -73,7 +132,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(true);
     const unsubProfile = firebase.firestore().collection('users').doc(user.uid).onSnapshot(
       (snap) => {
-        setProfile(snap.exists ? (snap.data() as UserProfile) : null);
+        if (snap.exists) {
+          const data = snap.data();
+          setProfile(getInitialProfile(user, data));
+        } else {
+          setProfile(getInitialProfile(user, {}));
+        }
         setLoading(false);
       },
       (err) => {
@@ -100,28 +164,80 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     weight: number;
     height: number;
     goal: Goal;
+    activityLevel?: ActivityLevel;
+    fitnessLevel?: FitnessLevel;
+    equipment?: Equipment;
+    dietRestriction?: DietRestriction;
+    allergies?: string[];
+    injuries?: string[];
   }) => {
     const cred = await firebase.auth().createUserWithEmailAndPassword(data.email, data.password);
     await cred.user.updateProfile({ displayName: data.name });
+
+    const now = new Date().toISOString();
     const profileData: Omit<UserProfile, 'dietPlan' | 'workoutPlan'> = {
-      uid: cred.user.uid, email: data.email, name: data.name,
-      age: data.age, gender: data.gender, weight: data.weight, height: data.height,
-      goal: data.goal, createdAt: new Date().toISOString(),
+      uid: cred.user.uid,
+      email: data.email,
+      name: data.name,
+      age: data.age,
+      gender: data.gender,
+      weight: data.weight,
+      height: data.height,
+      goal: data.goal,
+      activityLevel: data.activityLevel ?? 'moderate',
+      fitnessLevel: data.fitnessLevel ?? 'beginner',
+      equipment: data.equipment ?? 'no-equipment',
+      dietRestriction: data.dietRestriction ?? 'none',
+      allergies: data.allergies ?? [],
+      injuries: data.injuries ?? [],
+      tdee: 0,
+      macros: { protein: 0, fat: 0, carbs: 0 },
+      progressLogs: [],
+      bodyMeasurements: [],
+      workoutCalendar: [],
+      gamification: DEFAULT_GAMIFICATION,
+      createdAt: now,
+      updatedAt: now,
     };
+
     await firebase.firestore().collection('users').doc(cred.user.uid).set(profileData);
   };
 
   const signOut = async () => { await firebase.auth().signOut(); };
 
-  const updateProfileData = async (data: Partial<Pick<UserProfile, 'weight' | 'height' | 'goal'>>) => {
+  const updateProfileData = async (data: Partial<UserProfile>) => {
     if (!user) return;
-    await firebase.firestore().collection('users').doc(user.uid).update(data);
+    await firebase.firestore().collection('users').doc(user.uid).update({
+      ...data,
+      updatedAt: new Date().toISOString(),
+    });
+  };
+
+  const updateGamification = async (data: Partial<GamificationStats>) => {
+    if (!user || !profile) return;
+    const updated = { ...profile.gamification, ...data };
+    await firebase.firestore().collection('users').doc(user.uid).update({
+      gamification: updated,
+      updatedAt: new Date().toISOString(),
+    });
   };
 
   const refreshProfile = () => setProfileTick((n) => n + 1);
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signIn, signUp, signOut, updateProfileData, refreshProfile }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        profile,
+        loading,
+        signIn,
+        signUp,
+        signOut,
+        updateProfileData,
+        updateGamification,
+        refreshProfile,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
@@ -151,14 +267,40 @@ export async function signUpWithErrorAlert(data: {
   weight: number;
   height: number;
   goal: Goal;
+  activityLevel?: ActivityLevel;
+  fitnessLevel?: FitnessLevel;
+  equipment?: Equipment;
+  dietRestriction?: DietRestriction;
+  allergies?: string[];
+  injuries?: string[];
 }) {
   try {
     const cred = await firebase.auth().createUserWithEmailAndPassword(data.email, data.password);
     await cred.user.updateProfile({ displayName: data.name });
+    const now = new Date().toISOString();
     const profileData: Omit<UserProfile, 'dietPlan' | 'workoutPlan'> = {
-      uid: cred.user.uid, email: data.email, name: data.name,
-      age: data.age, gender: data.gender, weight: data.weight, height: data.height,
-      goal: data.goal, createdAt: new Date().toISOString(),
+      uid: cred.user.uid,
+      email: data.email,
+      name: data.name,
+      age: data.age,
+      gender: data.gender,
+      weight: data.weight,
+      height: data.height,
+      goal: data.goal,
+      activityLevel: data.activityLevel ?? 'moderate',
+      fitnessLevel: data.fitnessLevel ?? 'beginner',
+      equipment: data.equipment ?? 'no-equipment',
+      dietRestriction: data.dietRestriction ?? 'none',
+      allergies: data.allergies ?? [],
+      injuries: data.injuries ?? [],
+      tdee: 0,
+      macros: { protein: 0, fat: 0, carbs: 0 },
+      progressLogs: [],
+      bodyMeasurements: [],
+      workoutCalendar: [],
+      gamification: DEFAULT_GAMIFICATION,
+      createdAt: now,
+      updatedAt: now,
     };
     await firebase.firestore().collection('users').doc(cred.user.uid).set(profileData);
   } catch (e) {
