@@ -58,8 +58,6 @@ export async function POST(request: NextRequest) {
     // Get adaptive recommendations
     const adaptation = await generateAdaptivePlan({
       ...input,
-      tdee: tdeeData.tdee,
-      macros: tdeeData.macros,
       progressLast7Days: input.progressLast7Days,
       lastMissedWorkouts: input.lastMissedWorkouts,
     });

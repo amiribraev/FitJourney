@@ -41,10 +41,7 @@ const GenerateWorkoutPlanOutputSchema = z.object({
   equipment: z.string().describe('Оборудование использованное в плане.'),
   fitnessLevel: z.string().describe('Уровень подготовки плана.'),
 });
-export type GenerateWorkoutPlanOutput = z.infer<typeof GenerateWorkoutPlanOutputSchema> & {
-  equipment: Equipment;
-  fitnessLevel: FitnessLevel;
-};
+export type GenerateWorkoutPlanOutput = z.infer<typeof GenerateWorkoutPlanOutputSchema>;
 
 export async function generateWorkoutPlan(input: GenerateWorkoutPlanInput): Promise<GenerateWorkoutPlanOutput> {
   try {
@@ -59,6 +56,8 @@ export async function generateWorkoutPlan(input: GenerateWorkoutPlanInput): Prom
 // Fallback plan when API fails
 function getFallbackWorkoutPlan(): GenerateWorkoutPlanOutput {
   return {
+    equipment: 'no-equipment',
+    fitnessLevel: 'beginner',
     weeklyWorkoutPlan: {
       Monday: [
         'Разминка — 5 мин лёгкой ходьбы на месте',

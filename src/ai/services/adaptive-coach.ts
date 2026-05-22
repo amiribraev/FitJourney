@@ -1,5 +1,3 @@
-'use server';
-
 /**
  * @fileOverview Adaptive AI coach service.
  * Handles plan adjustments based on user progress, missed workouts, weight changes.
@@ -52,8 +50,7 @@ export type AdaptationOutput = z.infer<typeof AdaptationOutputSchema>;
 
 export async function generateAdaptivePlan(input: AdaptationInput): Promise<AdaptationOutput> {
   try {
-    const { output } = await generateAdaptivePlanFlow(input);
-    return output!;
+    return await generateAdaptivePlanFlow(input);
   } catch (error) {
     console.error('Error generating adaptive plan:', error);
     throw new Error('Не удалось скорректировать план');
