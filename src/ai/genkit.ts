@@ -1,4 +1,4 @@
-import {genkit} from 'genkit';
+﻿import {genkit} from 'genkit';
 import {googleAI} from '@genkit-ai/google-genai';
 
 // Initialize Genkit with Google AI plugin and optimized configuration
@@ -8,7 +8,7 @@ export const ai = genkit({
       apiKey: process.env.GEMINI_API_KEY,
     }),
   ],
-  model: 'googleai/gemini-2.5-flash',
+  model: 'googleai/gemini-3.1-flash-lite',
 });
 
 // Configuration for AI requests

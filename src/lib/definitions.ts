@@ -1,4 +1,4 @@
-import type { GenerateDietPlanOutput } from "@/ai/flows/generate-diet-plan";
+﻿import type { GenerateDietPlanOutput } from "@/ai/flows/generate-diet-plan";
 import type { GenerateWorkoutPlanOutput } from "@/ai/flows/generate-workout-plan";
 
 export type UserProfile = {
@@ -12,6 +12,7 @@ export type UserProfile = {
   goal: 'weight loss' | 'muscle gain';
   dietPlan?: GenerateDietPlanOutput;
   workoutPlan?: GenerateWorkoutPlanOutput;
+  language?: 'ru' | 'kk' | 'en';
   createdAt: string; 
 };
 

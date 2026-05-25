@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { getApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { z } from 'zod';
@@ -27,13 +27,14 @@ const PlanInputSchema = z.object({
   allergies: z.array(z.string()).default([]),
   injuries: z.array(z.string()).default([]),
   types: z.array(z.enum(['diet', 'workout'])).min(1).default(['diet', 'workout']),
+  language: z.enum(['ru', 'kk', 'en']).optional().default('ru'),
 });
 
 export async function POST(request: NextRequest) {
   try {
     const authHeader = request.headers.get('authorization');
     if (!authHeader?.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Требуется авторизация' }, { status: 401, headers: corsHeaders });
+      return NextResponse.json({ error: 'РўСЂРµР±СѓРµС‚СЃСЏ Р°РІС‚РѕСЂРёР·Р°С†РёСЏ' }, { status: 401, headers: corsHeaders });
     }
 
     const idToken = authHeader.slice(7);
@@ -60,6 +61,7 @@ export async function POST(request: NextRequest) {
       dietRestriction: input.dietRestriction,
       allergies: input.allergies,
       injuries: input.injuries,
+      language: input.language,
       tdee,
       macros,
       updatedAt: new Date().toISOString(),
@@ -90,6 +92,7 @@ export async function POST(request: NextRequest) {
       equipment: input.equipment,
       activityLevel: input.activityLevel,
       injuries: input.injuries,
+      language: input.language,
     };
 
     const result: { dietPlan?: any; workoutPlan?: any } = {};
@@ -124,9 +127,9 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('API /plans/generate error:', error);
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: 'Неверные данные запроса', details: error.errors }, { status: 400, headers: corsHeaders });
+      return NextResponse.json({ error: 'РќРµРІРµСЂРЅС‹Рµ РґР°РЅРЅС‹Рµ Р·Р°РїСЂРѕСЃР°', details: error.errors }, { status: 400, headers: corsHeaders });
     }
-    return NextResponse.json({ error: 'Не удалось сгенерировать планы' }, { status: 500, headers: corsHeaders });
+    return NextResponse.json({ error: 'РќРµ СѓРґР°Р»РѕСЃСЊ СЃРіРµРЅРµСЂРёСЂРѕРІР°С‚СЊ РїР»Р°РЅС‹' }, { status: 500, headers: corsHeaders });
   }
 }
 

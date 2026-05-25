@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -59,6 +59,7 @@ export function RegisterForm() {
         weight: data.weight,
         height: data.height,
         goal: data.goal,
+        language: 'ru',
         createdAt: new Date().toISOString(),
       };
       
@@ -66,8 +67,8 @@ export function RegisterForm() {
       await setDoc(userRef, userProfileData);
 
       toast({
-        title: 'Регистрация завершена!',
-        description: 'Ваш профиль создан. Перенаправляем...',
+        title: 'Р РµРіРёСЃС‚СЂР°С†РёСЏ Р·Р°РІРµСЂС€РµРЅР°!',
+        description: 'Р’Р°С€ РїСЂРѕС„РёР»СЊ СЃРѕР·РґР°РЅ. РџРµСЂРµРЅР°РїСЂР°РІР»СЏРµРј...',
       });
       
       // 3. Redirect to profile immediately. The profile page will handle plan generation.
@@ -75,8 +76,8 @@ export function RegisterForm() {
 
     } catch (error: any) {
       const errorMessage = error.code === 'auth/email-already-in-use'
-        ? 'Этот email уже используется. Пожалуйста, войдите или используйте другой адрес.'
-        : `Произошла ошибка при регистрации.`;
+        ? 'Р­С‚РѕС‚ email СѓР¶Рµ РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ. РџРѕР¶Р°Р»СѓР№СЃС‚Р°, РІРѕР№РґРёС‚Рµ РёР»Рё РёСЃРїРѕР»СЊР·СѓР№С‚Рµ РґСЂСѓРіРѕР№ Р°РґСЂРµСЃ.'
+        : `РџСЂРѕРёР·РѕС€Р»Р° РѕС€РёР±РєР° РїСЂРё СЂРµРіРёСЃС‚СЂР°С†РёРё.`;
       
       // We don't need to log this as an error to the console, it's expected user behavior
       if (error.code !== 'auth/email-already-in-use') {
@@ -85,7 +86,7 @@ export function RegisterForm() {
 
       toast({
         variant: 'destructive',
-        title: 'Ошибка регистрации',
+        title: 'РћС€РёР±РєР° СЂРµРіРёСЃС‚СЂР°С†РёРё',
         description: errorMessage,
       });
     } finally {
@@ -97,41 +98,41 @@ export function RegisterForm() {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <FormField control={form.control} name="name" render={({ field }) => (
-          <FormItem><FormLabel>Имя</FormLabel><FormControl><Input placeholder="Ваше имя" {...field} /></FormControl><FormMessage /></FormItem>
+          <FormItem><FormLabel>РРјСЏ</FormLabel><FormControl><Input placeholder="Р’Р°С€Рµ РёРјСЏ" {...field} /></FormControl><FormMessage /></FormItem>
         )} />
         <FormField control={form.control} name="email" render={({ field }) => (
-          <FormItem><FormLabel>Почта</FormLabel><FormControl><Input type="email" placeholder="you@example.com" {...field} /></FormControl><FormMessage /></FormItem>
+          <FormItem><FormLabel>РџРѕС‡С‚Р°</FormLabel><FormControl><Input type="email" placeholder="you@example.com" {...field} /></FormControl><FormMessage /></FormItem>
         )} />
         <FormField control={form.control} name="password" render={({ field }) => (
-          <FormItem className="md:col-span-2"><FormLabel>Пароль</FormLabel><FormControl><Input type="password" placeholder="••••••••" {...field} /></FormControl><FormMessage /></FormItem>
+          <FormItem className="md:col-span-2"><FormLabel>РџР°СЂРѕР»СЊ</FormLabel><FormControl><Input type="password" placeholder="вЂўвЂўвЂўвЂўвЂўвЂўвЂўвЂў" {...field} /></FormControl><FormMessage /></FormItem>
         )} />
         <FormField control={form.control} name="age" render={({ field }) => (
-          <FormItem><FormLabel>Возраст</FormLabel><FormControl><Input type="number" placeholder="25" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)}/></FormControl><FormMessage /></FormItem>
+          <FormItem><FormLabel>Р’РѕР·СЂР°СЃС‚</FormLabel><FormControl><Input type="number" placeholder="25" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)}/></FormControl><FormMessage /></FormItem>
         )} />
         <FormField control={form.control} name="gender" render={({ field }) => (
-          <FormItem><FormLabel>Пол</FormLabel>
+          <FormItem><FormLabel>РџРѕР»</FormLabel>
             <Select onValueChange={field.onChange} defaultValue={field.value}>
-              <FormControl><SelectTrigger><SelectValue placeholder="Выберите пол" /></SelectTrigger></FormControl>
-              <SelectContent><SelectItem value="male">Мужской</SelectItem><SelectItem value="female">Женский</SelectItem></SelectContent>
+              <FormControl><SelectTrigger><SelectValue placeholder="Р’С‹Р±РµСЂРёС‚Рµ РїРѕР»" /></SelectTrigger></FormControl>
+              <SelectContent><SelectItem value="male">РњСѓР¶СЃРєРѕР№</SelectItem><SelectItem value="female">Р–РµРЅСЃРєРёР№</SelectItem></SelectContent>
             </Select><FormMessage />
           </FormItem>
         )} />
         <FormField control={form.control} name="weight" render={({ field }) => (
-          <FormItem><FormLabel>Вес (в кг)</FormLabel><FormControl><Input type="number" placeholder="70" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)}/></FormControl><FormMessage /></FormItem>
+          <FormItem><FormLabel>Р’РµСЃ (РІ РєРі)</FormLabel><FormControl><Input type="number" placeholder="70" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)}/></FormControl><FormMessage /></FormItem>
         )} />
         <FormField control={form.control} name="height" render={({ field }) => (
-          <FormItem><FormLabel>Рост (в см)</FormLabel><FormControl><Input type="number" placeholder="175" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)}/></FormControl><FormMessage /></FormItem>
+          <FormItem><FormLabel>Р РѕСЃС‚ (РІ СЃРј)</FormLabel><FormControl><Input type="number" placeholder="175" {...field} onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)}/></FormControl><FormMessage /></FormItem>
         )} />
         <FormField control={form.control} name="goal" render={({ field }) => (
           <FormItem className="md:col-span-2 space-y-3">
-            <FormLabel>Ваша цель</FormLabel>
+            <FormLabel>Р’Р°С€Р° С†РµР»СЊ</FormLabel>
             <FormControl>
               <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex items-center gap-x-4">
                 <FormItem className="flex items-center space-x-3 space-y-0">
-                  <FormControl><RadioGroupItem value="weight loss" /></FormControl><FormLabel className="font-normal">Похудение</FormLabel>
+                  <FormControl><RadioGroupItem value="weight loss" /></FormControl><FormLabel className="font-normal">РџРѕС…СѓРґРµРЅРёРµ</FormLabel>
                 </FormItem>
                 <FormItem className="flex items-center space-x-3 space-y-0">
-                  <FormControl><RadioGroupItem value="muscle gain" /></FormControl><FormLabel className="font-normal">Набор массы</FormLabel>
+                  <FormControl><RadioGroupItem value="muscle gain" /></FormControl><FormLabel className="font-normal">РќР°Р±РѕСЂ РјР°СЃСЃС‹</FormLabel>
                 </FormItem>
               </RadioGroup>
             </FormControl>
@@ -140,7 +141,7 @@ export function RegisterForm() {
         )} />
         <Button type="submit" className="w-full md:col-span-2 bg-accent hover:bg-accent/90" disabled={isSubmitting}>
           {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Зарегистрироваться
+          Р—Р°СЂРµРіРёСЃС‚СЂРёСЂРѕРІР°С‚СЊСЃСЏ
         </Button>
       </form>
     </Form>
